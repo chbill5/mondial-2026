@@ -21,7 +21,7 @@
   .htop{display:flex; align-items:center; justify-content:space-between; gap:8px}
   header h1{font-size:17px; margin:0; font-weight:800; letter-spacing:.2px}
   header h1 small{display:block; font-weight:500; font-size:11px; color:#9fb4c2; margin-top:2px}
-  .reset{background:#16313f; color:#cfe0ea; border:1px solid #21455a; border-radius:8px;
+  .refresh{background:#16313f; color:#cfe0ea; border:1px solid #21455a; border-radius:8px;
     font-size:11px; padding:6px 9px; cursor:pointer}
   .tabs{display:flex; gap:6px; margin-top:10px}
   .tab{flex:1; text-align:center; padding:9px 4px; border-radius:9px 9px 0 0; cursor:pointer;
@@ -62,7 +62,7 @@
   .fW{background:var(--win)} .fN{background:var(--draw)} .fL{background:var(--loss)}
   .tabwin{margin-top:7px; font-size:11px; color:var(--muted); display:flex; gap:6px; align-items:center; flex-wrap:wrap}
   .tabwin button{border:1px solid var(--line); background:#fff; border-radius:7px; padding:4px 8px;
-    font-size:11px; font-weight:700; cursor:pointer; color:var(--ink)}
+    font-size:11px; font-weight:700; cursor:default; color:var(--ink)}
   .tabwin button.sel{background:var(--gold); border-color:#e0ad1f}
   /* groups */
   .gtitle{display:flex; align-items:center; gap:8px; margin:16px 0 6px; font-weight:800}
@@ -94,17 +94,25 @@
   .legend{font-size:11px;color:var(--muted);margin:10px 2px;line-height:1.5}
   .legend b{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:-1px;margin:0 2px}
   footer{max-width:680px;margin:0 auto;padding:4px 14px 30px;color:#8a98a2;font-size:11px;line-height:1.6}
-  .save{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:var(--greenD);
-    color:#fff;padding:8px 16px;border-radius:999px;font-size:12px;font-weight:700;opacity:0;
-    transition:opacity .25s;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
-  .save.show{opacity:1}
+  /* Données live */
+  .score input[readonly],.kin[readonly]{background:#f0f4f6;cursor:default}
+  .score input[readonly]:focus,.kin[readonly]:focus{border-color:var(--line)}
+  .score input[data-live],.kin[data-live]{background:#fff8e8;border-color:#f59e0b}
+  .live-badge{display:inline-block;background:#f59e0b;color:#fff;border-radius:4px;
+    font-size:9px;font-weight:800;padding:1px 5px;margin-left:4px;vertical-align:middle;
+    letter-spacing:.3px;animation:pulse 1.5s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+  .errbanner{background:#fff3cd;border:1px solid #ffc107;border-radius:9px;
+    padding:8px 12px;font-size:12px;margin-bottom:10px;color:#856404}
+  .dstamp{font-size:10.5px;color:var(--muted);text-align:right;margin-bottom:6px;font-weight:600}
+  .loading{text-align:center;padding:40px 12px;color:var(--muted);font-size:13px;font-weight:700}
 </style>
 </head>
 <body>
 <header>
   <div class="htop">
     <h1>Mondial 2026 <small>Mon suivi · agenda, poules, probas & tableau</small></h1>
-    <button class="reset" id="reset">Réinitialiser</button>
+    <button class="refresh" id="refreshBtn">⟳ Actualiser</button>
   </div>
   <div class="tabs">
     <div class="tab active" data-v="matchs">Matchs</div>
@@ -113,14 +121,13 @@
   </div>
 </header>
 <main>
-  <section id="matchs"></section>
+  <section id="matchs"><div class="loading">⟳ Chargement des données…</div></section>
   <section id="groupes" style="display:none"></section>
   <section id="tableau" style="display:none"></section>
 </main>
 <footer>
-  Données <b style="background:none">indicatives</b> : niveau des équipes (façon Elo) et forme d'avant-Mondial (5 derniers). Les probabilités V / N / D sont des estimations à partir du niveau, pas des cotes. Tout se sauvegarde automatiquement sur cet appareil (hors-ligne). Astuce : « Ajouter à l'écran d'accueil » pour l'utiliser comme une appli.
+  Scores et classements mis à jour automatiquement. Probabilités V / N / D : estimation selon le niveau Elo des équipes. Données : football-data.org.
 </footer>
-<div class="save" id="savetag">Enregistré ✓</div>
 
 <script>
 /* ===================== DONNÉES ===================== */
@@ -151,6 +158,25 @@ const TEAMS = {
 "Angleterre":["🏴󠁧󠁢󠁥󠁮󠁧󠁿","L",1862,"WWNWN"], "Croatie":["🇭🇷","L",1748,"NWNNL"],
 "Ghana":["🇬🇭","L",1648,"WNLWL"], "Panama":["🇵🇦","L",1612,"NLWNL"]
 };
+
+// Correspondance TLA (code FIFA) → nom français (source : standings.json)
+const TLA_TO_FR = {
+  "MEX":"Mexique",       "RSA":"Afrique du Sud",    "KOR":"Corée du Sud",      "CZE":"Tchéquie",
+  "CAN":"Canada",        "BIH":"Bosnie-Herzégovine", "QAT":"Qatar",             "SUI":"Suisse",
+  "BRA":"Brésil",        "MAR":"Maroc",              "HAI":"Haïti",             "SCO":"Écosse",
+  "USA":"États-Unis",    "PAR":"Paraguay",            "AUS":"Australie",         "TUR":"Turquie",
+  "GER":"Allemagne",     "CUW":"Curaçao",            "CIV":"Côte d'Ivoire",     "ECU":"Équateur",
+  "NED":"Pays-Bas",      "JPN":"Japon",              "SWE":"Suède",             "TUN":"Tunisie",
+  "BEL":"Belgique",      "EGY":"Égypte",             "IRN":"Iran",              "NZL":"Nouvelle-Zélande",
+  "ESP":"Espagne",       "CPV":"Cap-Vert",            "KSA":"Arabie saoudite",   "URY":"Uruguay",
+  "FRA":"France",        "IRQ":"Irak",               "NOR":"Norvège",           "SEN":"Sénégal",
+  "ARG":"Argentine",     "ALG":"Algérie",            "AUT":"Autriche",          "JOR":"Jordanie",
+  "POR":"Portugal",      "COD":"RD Congo",           "UZB":"Ouzbékistan",       "COL":"Colombie",
+  "ENG":"Angleterre",    "CRO":"Croatie",            "GHA":"Ghana",             "PAN":"Panama"
+};
+
+// Index GM par paire d'équipes pour la phase de poules : "domicile|extérieur" → match
+const gmByTeams = {};
 
 // matchs de poule : [groupe, date, heure, domicile, extérieur]
 const GM = [
@@ -192,7 +218,7 @@ const GM = [
 ["L","27/6","23h","Panama","Angleterre"],["L","27/6","23h","Croatie","Ghana"]
 ];
 // id stable pour chaque match de poule
-GM.forEach((m,i)=>m.id="G"+i);
+GM.forEach((m,i)=>{ m.id="G"+i; gmByTeams[m[3]+"|"+m[4]]=m; });
 
 // ordre d'affichage chronologique (par date puis heure)
 const DATE_ORDER = ["11/6","12/6","13/6","14/6","15/6","16/6","17/6","18/6","19/6","20/6","21/6","22/6","23/6","24/6","25/6","26/6","27/6","28/6",
@@ -242,13 +268,80 @@ const T_ALLOWED = {
 };
 const FR_PATH = new Set(["M77","M89","M97","M101","M104"]);
 
-/* ===================== ÉTAT ===================== */
-const KEY="cdm2026_v1";
-let R = load();           // résultats {matchId:{h,a,w}}
-function load(){ try{return JSON.parse(localStorage.getItem(KEY))||{};}catch(e){return {};} }
-let saveT;
-function save(){ try{ localStorage.setItem(KEY,JSON.stringify(R)); }catch(e){} const t=document.getElementById('savetag');
-  t.classList.add('show'); clearTimeout(saveT); saveT=setTimeout(()=>t.classList.remove('show'),900); }
+/* ===================== ÉTAT LIVE ===================== */
+let R = {};            // scores live injectés depuis data/fixtures.json
+let liveIds = new Set(); // matchs EN COURS
+let dataError = false;
+let lastUpdated = "";
+
+async function loadLiveData() {
+  try {
+    const res = await fetch("data/fixtures.json");
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+
+    R = {};
+    liveIds = new Set();
+
+    // 1er passage : matchs de poule
+    data.matches.forEach(m => {
+      const isLive = m.status === "IN_PLAY" || m.status === "PAUSED" || m.status === "HALFTIME";
+      const isDone = m.status === "FINISHED";
+      if (!isLive && !isDone) return;
+      if (m.stage !== "GROUP_STAGE") return;
+
+      const hFR = TLA_TO_FR[m.homeTeam?.tla];
+      const aFR = TLA_TO_FR[m.awayTeam?.tla];
+      if (!hFR || !aFR) return;
+
+      const sh = m.score?.fullTime?.home;
+      const sa = m.score?.fullTime?.away;
+      if (sh == null || sa == null) return;
+
+      const gm = gmByTeams[hFR + "|" + aFR];
+      if (!gm) return;
+
+      R[gm.id] = { id: gm.id, h: sh, a: sa };
+      if (isLive) liveIds.add(gm.id);
+    });
+
+    // 2e passage : matchs KO (après avoir résolu les groupes)
+    const { teamOf } = koResolve();
+    data.matches.forEach(m => {
+      const isLive = m.status === "IN_PLAY" || m.status === "PAUSED" || m.status === "HALFTIME";
+      const isDone = m.status === "FINISHED";
+      if (!isLive && !isDone) return;
+      if (m.stage === "GROUP_STAGE") return;
+
+      const hFR = TLA_TO_FR[m.homeTeam?.tla];
+      const aFR = TLA_TO_FR[m.awayTeam?.tla];
+      if (!hFR || !aFR) return;
+
+      const sh = m.score?.fullTime?.home;
+      const sa = m.score?.fullTime?.away;
+      if (sh == null || sa == null) return;
+
+      for (const ko of KO) {
+        const res = teamOf[ko.id];
+        if (res && res.a === hFR && res.b === aFR) {
+          R[ko.id] = { id: ko.id, h: sh, a: sa };
+          // Si victoire aux t.a.b. (égalité en temps réglementaire)
+          if (isDone && sh === sa && m.score?.winner) {
+            R[ko.id].w = (m.score.winner === "HOME_TEAM") ? "h" : "a";
+          }
+          if (isLive) liveIds.add(ko.id);
+          break;
+        }
+      }
+    });
+
+    lastUpdated = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    dataError = false;
+  } catch(e) {
+    console.warn("Données live indisponibles :", e.message);
+    dataError = true;
+  }
+}
 
 /* ===================== PROBAS ===================== */
 function probGroup(rh,ra){
@@ -285,12 +378,11 @@ function thirdsAssign(){
   thirds.sort((x,y)=> y.Pts-x.Pts || (y.BP-y.BC)-(x.BP-x.BC) || y.BP-x.BP);
   const top=thirds.slice(0,8); const groupsIn=top.map(t=>t.g);
   const slots=Object.keys(T_ALLOWED);
-  // backtracking : chaque slot reçoit un groupe distinct autorisé
   const used={}, res={};
   function bt(i){ if(i===slots.length)return true; const s=slots[i];
     for(const g of T_ALLOWED[s]){ if(groupsIn.includes(g)&&!used[g]){ used[g]=1;res[s]=g; if(bt(i+1))return true; delete used[g]; } }
     return false; }
-  if(!bt(0)){ slots.forEach((s,i)=>res[s]=groupsIn[i]); } // secours
+  if(!bt(0)){ slots.forEach((s,i)=>res[s]=groupsIn[i]); }
   const out={}; for(const s in res){ out[s]=standings(res[s])[2].name; }
   return out;
 }
@@ -300,8 +392,7 @@ function koResolve(){
   const W={},Rn={};
   "ABCDEFGHIJKL".split("").forEach(g=>{ if(groupDone(g)){const s=standings(g); W[g]=s[0].name; Rn[g]=s[1].name;} });
   const T=thirdsAssign();
-  const winners={}; // matchId -> nom vainqueur
-  const teamOf={};  // matchId -> {a,b} noms résolus
+  const winners={}; const teamOf={};
   function ref(r){
     if(!r) return null;
     const [k,v]=r.split(":");
@@ -341,22 +432,32 @@ function probBar(p,ko){
 }
 function scoreInputs(id,r){
   const h=(r&&r.h!=null)?r.h:"", a=(r&&r.a!=null)?r.a:"";
-  return '<div class="score"><input inputmode="numeric" data-m="'+id+'" data-s="h" value="'+h+'">'+
-    '<span class="dash">–</span><input inputmode="numeric" data-m="'+id+'" data-s="a" value="'+a+'"></div>';
+  const live=liveIds.has(id);
+  const liveAttr=live?' data-live="1"':'';
+  return '<div class="score">'+
+    '<input readonly'+liveAttr+' data-m="'+id+'" data-s="h" value="'+h+'">'+
+    '<span class="dash">–</span>'+
+    '<input readonly'+liveAttr+' data-m="'+id+'" data-s="a" value="'+a+'">'+
+    '</div>';
+}
+function dataBanner(){
+  if(dataError) return '<div class="errbanner">⚠️ Données live indisponibles — scores non affichés.</div>';
+  if(lastUpdated) return '<div class="dstamp">Mis à jour à '+lastUpdated+'</div>';
+  return '';
 }
 
 /* ----- onglet MATCHS ----- */
 let fGroup="ALL";
 function renderMatchs(){
   const root=document.getElementById('matchs');
-  let html='<div class="filters"><select id="gsel">';
+  let html=dataBanner();
+  html+='<div class="filters"><select id="gsel">';
   html+='<option value="ALL">Tous les matchs</option>';
   html+='<option value="FR">🇫🇷 France</option>';
   html+='ABCDEFGHIJKL'.split("").map(g=>'<option value="'+g+'">Groupe '+g+'</option>').join("");
   html+='<option value="KO">Phase finale</option></select>';
   html+='<span class="tab-note">Probas = estimation selon le niveau</span></div>';
 
-  // construire la liste chrono : poules + KO
   let list=[];
   if(fGroup!=="KO"){
     GM.forEach(m=>{ if(fGroup==="FR"){ if(m[3]!=="France"&&m[4]!=="France")return; }
@@ -380,9 +481,11 @@ function renderMatchs(){
 }
 function matchCardG(m){
   const r=R[m.id]; const isFR=(m[3]==="France"||m[4]==="France");
+  const isLive=liveIds.has(m.id);
   const p=probGroup(TEAMS[m[3]][2],TEAMS[m[4]][2]);
+  const liveTag=isLive?'<span class="live-badge">● EN COURS</span>':'';
   return '<div class="card'+(isFR?' fr':'')+'">'+
-    '<div class="mrow"><div class="meta">'+m[2]+'<br><span class="g">Gr. '+m[0]+'</span></div>'+
+    '<div class="mrow"><div class="meta">'+m[2]+liveTag+'<br><span class="g">Gr. '+m[0]+'</span></div>'+
     '<div class="side"><span class="flag">'+flag(m[3])+'</span><span class="tn">'+m[3]+'</span></div>'+
     scoreInputs(m.id,r)+
     '<div class="side r"><span class="tn">'+m[4]+'</span><span class="flag">'+flag(m[4])+'</span></div></div>'+
@@ -391,15 +494,18 @@ function matchCardG(m){
 function matchCardK(m,res){
   const a=res?res.a:null, b=res?res.b:null; const r=R[m.id];
   const isFR=FR_PATH.has(m.id);
+  const isLive=liveIds.has(m.id);
+  const liveTag=isLive?'<span class="live-badge">● EN COURS</span>':'';
   const aH=a?('<span class="flag">'+flag(a)+'</span><span class="tn">'+a+'</span>'):'<span class="ph">'+slotLabel(m.a)+'</span>';
   const bH=b?('<span class="tn">'+b+'</span><span class="flag">'+flag(b)+'</span>'):'<span class="ph">'+slotLabel(m.b)+'</span>';
   let pbar=''; if(a&&b){ pbar=probBar(probKO(TEAMS[a][2],TEAMS[b][2]),true); }
-  let body='<div class="mrow"><div class="meta">'+m.h+'<br><span class="g">'+m.st+'</span></div>'+
+  let body='<div class="mrow"><div class="meta">'+m.h+liveTag+'<br><span class="g">'+m.st+'</span></div>'+
     '<div class="side">'+aH+'</div>'+scoreInputs(m.id,r)+'<div class="side r">'+bH+'</div></div>'+pbar;
-  if(a&&b&&r&&r.h!=null&&r.a!=null&&r.h!==""&&r.a!==""&&(+r.h===+r.a)){
-    body+='<div class="tabwin">Vainqueur t.a.b. :'+
-      '<button data-tab="'+m.id+'" data-w="h" class="'+(r.w==="h"?"sel":"")+'">'+a+'</button>'+
-      '<button data-tab="'+m.id+'" data-w="a" class="'+(r.w==="a"?"sel":"")+'">'+b+'</button></div>';
+  // Afficher le vainqueur t.a.b. en lecture seule si connu
+  if(a&&b&&r&&r.h!=null&&r.a!=null&&r.h!==""&&r.a!==""&&(+r.h===+r.a)&&r.w){
+    body+='<div class="tabwin">Victoire aux t.a.b. :'+
+      '<button disabled class="'+(r.w==="h"?"sel":"")+'">'+a+'</button>'+
+      '<button disabled class="'+(r.w==="a"?"sel":"")+'">'+b+'</button></div>';
   }
   return '<div class="card'+(isFR?' fr':'')+'">'+body+'</div>';
 }
@@ -411,10 +517,10 @@ function slotLabel(ref){ const [k,v]=ref.split(":");
 /* ----- onglet POULES ----- */
 function renderGroupes(){
   const root=document.getElementById('groupes');
-  let html='<div class="legend">Qualifié direct (top 2) <b style="background:#bdeccd"></b>'+
+  let html=dataBanner();
+  html+='<div class="legend">Qualifié direct (top 2) <b style="background:#bdeccd"></b>'+
     ' · meilleur 3e <b style="background:#ffe6ad"></b> · Forme : '+
     '<b class="fW"></b>V <b class="fN"></b>N <b class="fL"></b>D (du + récent au + ancien)</div>';
-  // 8 meilleurs 3es (pour marquer)
   let q3=new Set();
   if(allGroupsDone()){ let th="ABCDEFGHIJKL".split("").map(g=>{const s=standings(g)[2];return {g,n:s.name,P:s.Pts,D:s.BP-s.BC,B:s.BP};});
     th.sort((x,y)=>y.P-x.P||y.D-x.D||y.B-x.B); th.slice(0,8).forEach(t=>q3.add(t.n)); }
@@ -430,7 +536,6 @@ function renderGroupes(){
         '<td class="pts">'+t.Pts+'</td><td>'+formHTML(t.name)+'</td></tr>';
     });
     html+='</table>';
-    // matchs du groupe
     html+='<div class="mini">';
     GM.filter(m=>m[0]===g).forEach(m=>{ html+=matchCardG(m); });
     html+='</div>';
@@ -441,9 +546,9 @@ function renderGroupes(){
 /* ----- onglet TABLEAU ----- */
 function renderTableau(){
   const root=document.getElementById('tableau'); const {teamOf,winners}=koResolve();
-  let html='<div class="legend">Rempli automatiquement à partir de tes scores. '+
-    'Cases jaunes = parcours de la France si 1re du groupe I. '+
-    'En cas d\'égalité, choisis le vainqueur aux t.a.b.</div>';
+  let html=dataBanner();
+  html+='<div class="legend">Rempli automatiquement à partir des scores live. '+
+    'Cases jaunes = parcours de la France si 1re du groupe I.</div>';
   const rounds=["16es","8es","Quarts","Demi-finales","3e place","Finale"];
   rounds.forEach(rd=>{
     const ms=KO.filter(m=>m.st===rd);
@@ -453,11 +558,10 @@ function renderTableau(){
       html+='<div class="kcard'+(isFR?' fr':'')+'"><div class="meta" style="min-width:0;margin-bottom:2px">'+m.h+'</div>';
       html+= kline(m.id,m.a,res?res.a:null,w,'h',r);
       html+= kline(m.id,m.b,res?res.b:null,w,'a',r);
-      // t.a.b
-      if(res&&res.a&&res.b&&r&&r.h!=null&&r.a!=null&&r.h!==""&&r.a!==""&&(+r.h===+r.a)){
+      if(res&&res.a&&res.b&&r&&r.h!=null&&r.a!=null&&r.h!==""&&r.a!==""&&(+r.h===+r.a)&&r.w){
         html+='<div class="tabwin">t.a.b. :'+
-          '<button data-tab="'+m.id+'" data-w="h" class="'+(r.w==="h"?"sel":"")+'">'+res.a+'</button>'+
-          '<button data-tab="'+m.id+'" data-w="a" class="'+(r.w==="a"?"sel":"")+'">'+res.b+'</button></div>';
+          '<button disabled class="'+(r.w==="h"?"sel":"")+'">'+res.a+'</button>'+
+          '<button disabled class="'+(r.w==="a"?"sel":"")+'">'+res.b+'</button></div>';
       }
       html+='</div>';
     });
@@ -469,35 +573,14 @@ function kline(mid,ref,name,w,side,r){
   const left = name ? '<span class="flag">'+flag(name)+'</span><span class="tn">'+name+'</span>'
                     : '<span class="ph">'+slotLabel(ref)+'</span>';
   const val=(r&&r[side]!=null&&r[side]!=="")?r[side]:"";
-  const inp = name ? '<input inputmode="numeric" class="kin" data-m="'+mid+'" data-s="'+side+'" value="'+val+'">' : '';
+  const live=liveIds.has(mid);
+  const liveAttr=live?' data-live="1"':'';
+  const inp = name ? '<input readonly'+liveAttr+' class="kin" data-m="'+mid+'" data-s="'+side+'" value="'+val+'">' : '';
   return '<div class="kteam'+win+'">'+left+'<span class="ks">'+inp+'</span></div>';
 }
 function frDate(d){ const p=d.split("/"); return p[0]+" "+(p[1]==="6"?"juin":"juillet"); }
 
 /* ===================== ÉVÉNEMENTS ===================== */
-document.addEventListener('input',e=>{
-  if(e.target.matches('input[data-m]')){
-    const id=e.target.getAttribute('data-m'), s=e.target.getAttribute('data-s');
-    let v=e.target.value.replace(/[^0-9]/g,''); if(v.length>2)v=v.slice(0,2); e.target.value=v;
-    R[id]=R[id]||{id}; R[id].id=id; R[id][s]= v===""?"":+v;
-    save(); rerenderLight();
-  }
-});
-document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-tab]');
-  if(t){ const id=t.getAttribute('data-tab'); R[id]=R[id]||{id}; R[id].w=t.getAttribute('data-w'); save(); rerender(); }
-});
-function rerenderLight(){ // recalcule classements/tableau en conservant le focus de saisie
-  if(active==="groupes"||active==="tableau"){
-    const ae=document.activeElement; let key=null;
-    if(ae&&ae.matches&&ae.matches('input[data-m]')) key=[ae.getAttribute('data-m'),ae.getAttribute('data-s')];
-    active==="groupes"?renderGroupes():renderTableau();
-    if(key){ const el=document.querySelector('input[data-m="'+key[0]+'"][data-s="'+key[1]+'"]');
-      if(el){ const v=el.value; el.focus(); el.value=''; el.value=v; } }
-  }
-}
-function rerender(){ if(active==="matchs")renderMatchs(); else if(active==="groupes")renderGroupes(); else renderTableau(); }
-
 let active="matchs";
 document.querySelectorAll('.tab').forEach(tb=>tb.onclick=()=>{
   active=tb.getAttribute('data-v');
@@ -505,10 +588,23 @@ document.querySelectorAll('.tab').forEach(tb=>tb.onclick=()=>{
   ['matchs','groupes','tableau'].forEach(v=>document.getElementById(v).style.display=(v===active?'':'none'));
   rerender();
 });
-document.getElementById('reset').onclick=()=>{ if(confirm("Effacer tous les scores saisis ?")){ R={}; save(); rerender(); } };
 
-/* init */
-renderMatchs();
+document.getElementById('refreshBtn').onclick=async()=>{
+  const btn=document.getElementById('refreshBtn');
+  btn.textContent="⟳…"; btn.disabled=true;
+  await loadLiveData();
+  rerender();
+  btn.textContent="⟳ Actualiser"; btn.disabled=false;
+};
+
+function rerender(){ if(active==="matchs")renderMatchs(); else if(active==="groupes")renderGroupes(); else renderTableau(); }
+
+/* ===================== INIT ===================== */
+async function init(){
+  await loadLiveData();
+  renderMatchs();
+}
+init();
 </script>
 </body>
 </html>
