@@ -77,24 +77,38 @@ GitHub Pages (site statique)
 
 ## Fonctionnalités visées (roadmap)
 
-### Phase 1 — Infrastructure données ✅ (en cours)
+### Phase 1 — Infrastructure données ✅ (complète)
 - `scripts/fetch-data.js` — 2 appels API (fixtures + standings), écrit dans `data/`
 - `package.json` — script `npm run fetch` pour lancer localement
-- Workflow GitHub Actions `update-data.yml` à créer (toutes les 15 min)
-- Fichiers JSON produits :
-  - `data/fixtures.json` — tous les matchs avec scores
-  - `data/standings.json` — classements des poules
-- À venir :
-  - `data/odds.json` — cotes Winamax / Betclic
-  - `data/players.json` — effectifs et stats par équipe
-  - `data/form.json` — 10 derniers matchs de chaque équipe
+- `.github/workflows/update-data.yml` — robot cloud toutes les ~15 min + déclenchement manuel
 
-**Commande de lancement local :**
+**Fichiers JSON produits :**
+- `data/fixtures.json` — tous les matchs avec scores (104 matchs)
+- `data/standings.json` — classements des 12 groupes
+
+**À venir (phases suivantes) :**
+- `data/odds.json` — cotes Winamax / Betclic
+- `data/players.json` — effectifs et stats par équipe
+- `data/form.json` — 10 derniers matchs de chaque équipe
+
+**Lancement local :**
 ```bash
 # 1. Ajouter le token dans .env : FOOTBALL_DATA_TOKEN=ton_token_ici
 # 2. Lancer :
 npm run fetch
 ```
+
+**Lancement sur GitHub Actions :**
+- Automatique toutes les ~15 min (cron non garanti à la minute près)
+- Manuel : onglet Actions > "Mise à jour des données" > Run workflow
+- Prérequis : dépôt sur GitHub + secret `FOOTBALL_DATA_TOKEN` dans Settings > Secrets > Actions
+
+**Fonctionnement du workflow (`update-data.yml`) :**
+1. Checkout du dépôt
+2. Setup Node.js 24
+3. Exécute `node scripts/fetch-data.js` avec `FOOTBALL_DATA_TOKEN` depuis les Secrets
+4. `git add data/` → commit uniquement si les JSON ont changé → push
+5. GitHub Pages se redéploie automatiquement à chaque push sur la branche principale
 
 ### Phase 2 — Mise à jour automatique du front-end
 - `index.html` lit `data/matches.json` au lieu des saisies manuelles.
@@ -133,7 +147,7 @@ npm run fetch
 ├── package.json            # Script npm run fetch
 ├── .github/
 │   └── workflows/
-│       └── update-data.yml (à créer)
+│       └── update-data.yml     # Robot cloud toutes les ~15 min
 ├── data/                   # Fichiers JSON écrits par GitHub Actions
 │   ├── fixtures.json       # Tous les matchs + scores
 │   └── standings.json      # Classements des poules

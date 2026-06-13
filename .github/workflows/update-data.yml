@@ -1,0 +1,47 @@
+# Workflow de mise à jour des données Coupe du monde 2026
+#
+# Note : le cron GitHub Actions n'est pas garanti à la minute près —
+# "*/15 * * * *" est une cible, pas une horloge exacte (délai fréquent de 5-15 min).
+#
+# Prérequis : ce workflow ne tournera qu'une fois le projet sur GitHub
+# ET le secret FOOTBALL_DATA_TOKEN ajouté dans Settings > Secrets > Actions.
+
+name: Mise à jour des données
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-and-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Récupération des données API
+        env:
+          FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
+        run: node scripts/fetch-data.js
+
+      - name: Commit et push des JSON mis à jour
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --staged --quiet; then
+            echo "Aucune modification — pas de commit."
+          else
+            git commit -m "chore: mise à jour données WC 2026 [$(date -u '+%Y-%m-%d %H:%M UTC')]"
+            git push
+          fi
