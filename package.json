@@ -1,0 +1,12 @@
+{
+  "name": "mondial-2026",
+  "version": "1.0.0",
+  "description": "Suivi Coupe du monde 2026 — GitHub Pages + GitHub Actions",
+  "type": "module",
+  "scripts": {
+    "fetch": "node --env-file=.env scripts/fetch-data.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

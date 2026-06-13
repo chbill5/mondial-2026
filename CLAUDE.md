@@ -30,12 +30,28 @@ GitHub Pages (site statique)
 
 ---
 
-## Sources de données (branchement ultérieur)
+## Sources de données
 
-| Source | Données fournies | Clé secrète |
+| Source | Données fournies | Variable secrète |
 |---|---|---|
-| **API-Football** | Scores, calendrier, classements, effectifs, forme des 10 derniers matchs | `API_FOOTBALL_KEY` |
-| **The Odds API** | Cotes Winamax et Betclic pour chaque match | `ODDS_API_KEY` |
+| **football-data.org** | Scores, calendrier, classements des poules | `FOOTBALL_DATA_TOKEN` |
+| **The Odds API** | Cotes Winamax et Betclic pour chaque match | `ODDS_API_KEY` (à venir) |
+
+> ~~API-Football~~ abandonné : plan gratuit bloqué sur les saisons 2022–2024, pas d'accès à 2026.
+
+### football-data.org — détails techniques
+
+- **Endpoint de base** : `https://api.football-data.org/v4`
+- **Authentification** : header `X-Auth-Token: <token>`
+- **Compétition** : `WC` (Coupe du monde)
+- **Plan gratuit** : 10 requêtes/minute — 2 appels seulement à chaque exécution
+
+**Endpoints utilisés :**
+
+| Endpoint | Fichier produit | Description |
+|---|---|---|
+| `GET /competitions/WC/matches` | `data/fixtures.json` | Tous les matchs + scores |
+| `GET /competitions/WC/standings` | `data/standings.json` | Classements des poules |
 
 ---
 
@@ -61,15 +77,24 @@ GitHub Pages (site statique)
 
 ## Fonctionnalités visées (roadmap)
 
-### Phase 1 — Infrastructure données (prochaine étape)
-- Créer le workflow GitHub Actions (`update-data.yml`) qui tourne toutes les 15 min.
-- Scripts Node dans `scripts/` pour appeler API-Football et écrire les JSON dans `data/`.
-- Fichiers JSON cibles :
-  - `data/matches.json` — tous les matchs avec scores live
-  - `data/standings.json` — classements de poules
+### Phase 1 — Infrastructure données ✅ (en cours)
+- `scripts/fetch-data.js` — 2 appels API (fixtures + standings), écrit dans `data/`
+- `package.json` — script `npm run fetch` pour lancer localement
+- Workflow GitHub Actions `update-data.yml` à créer (toutes les 15 min)
+- Fichiers JSON produits :
+  - `data/fixtures.json` — tous les matchs avec scores
+  - `data/standings.json` — classements des poules
+- À venir :
   - `data/odds.json` — cotes Winamax / Betclic
   - `data/players.json` — effectifs et stats par équipe
   - `data/form.json` — 10 derniers matchs de chaque équipe
+
+**Commande de lancement local :**
+```bash
+# 1. Ajouter le token dans .env : FOOTBALL_DATA_TOKEN=ton_token_ici
+# 2. Lancer :
+npm run fetch
+```
 
 ### Phase 2 — Mise à jour automatique du front-end
 - `index.html` lit `data/matches.json` au lieu des saisies manuelles.
@@ -104,13 +129,16 @@ GitHub Pages (site statique)
 ├── index.html              # App principale (SPA vanilla JS)
 ├── CLAUDE.md               # Cette documentation
 ├── .gitignore
+├── .env                    # Clés locales — JAMAIS commité
+├── package.json            # Script npm run fetch
 ├── .github/
 │   └── workflows/
-│       └── (update-data.yml à créer phase 1)
+│       └── update-data.yml (à créer)
 ├── data/                   # Fichiers JSON écrits par GitHub Actions
-│   └── (matches.json, standings.json, odds.json… à créer phase 1)
-└── scripts/                # Scripts Node d'ingestion des API
-    └── (fetch-matches.js, fetch-odds.js… à créer phase 1)
+│   ├── fixtures.json       # Tous les matchs + scores
+│   └── standings.json      # Classements des poules
+└── scripts/
+    └── fetch-data.js       # Script d'ingestion (2 appels API)
 ```
 
 ---
@@ -119,6 +147,6 @@ GitHub Pages (site statique)
 
 - **Langue** : tout en français (UI, commentaires, noms de variables métier).
 - **Zéro dépendance front-end** : vanilla JS uniquement, pas de framework.
-- **Scripts back-end** : Node.js, avec `node-fetch` ou `axios` si nécessaire.
+- **Scripts back-end** : Node.js ≥ 22, `fetch` natif, `--env-file=.env` natif — zéro dépendance npm.
 - **Pas de secrets dans le code** : toujours via `process.env.MA_CLE` + GitHub Secrets.
 - **GitHub Pages** : branche `main`, dossier racine `/`. Tout fichier statique est servi.
