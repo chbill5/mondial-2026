@@ -65,7 +65,8 @@
     font-size:11px; font-weight:700; cursor:default; color:var(--ink)}
   .tabwin button.sel{background:var(--gold); border-color:#e0ad1f}
   /* groups */
-  .gtitle{display:flex; align-items:center; gap:8px; margin:16px 0 6px; font-weight:800}
+  .gtitle{display:flex; align-items:center; gap:8px; margin:16px 0 6px; font-weight:800; cursor:pointer; user-select:none}
+  .gtitle:hover .badge{opacity:.85}
   .gtitle .badge{background:var(--green); color:#fff; border-radius:7px; padding:2px 9px; font-size:13px}
   .gtitle.fr .badge{background:var(--fr)}
   table{width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line);
@@ -571,13 +572,14 @@ function renderMatchs(autoFocus){
   document.getElementById('gsel').onchange=e=>{fGroup=e.target.value; renderMatchs();};
   if(autoFocus) requestAnimationFrame(()=>scrollToDate(focusDate(dates)));
 }
-function matchCardG(m){
+function matchCardG(m, showDate=false){
   const r=R[m.id]; const isFR=(m[3]==="France"||m[4]==="France");
   const isLive=liveIds.has(m.id);
   const p=probGroup(TEAMS[m[3]][2],TEAMS[m[4]][2]);
   const liveTag=isLive?'<span class="live-badge">● EN COURS</span>':'';
+  const timeLine=showDate ? m[2]+' · '+m[1]+liveTag : m[2]+liveTag;
   return '<div class="card'+(isFR?' fr':'')+'">'+
-    '<div class="mrow"><div class="meta">'+m[2]+liveTag+'<br><span class="g">Gr. '+m[0]+'</span><br>'+chBadges(chGroup(m))+'</div>'+
+    '<div class="mrow"><div class="meta">'+timeLine+'<br><span class="g">Gr. '+m[0]+'</span><br>'+chBadges(chGroup(m))+'</div>'+
     '<div class="side"><span class="flag">'+flag(m[3])+'</span><span class="tn">'+m[3]+'</span></div>'+
     scoreInputs(m.id,r)+
     '<div class="side r"><span class="tn">'+m[4]+'</span><span class="flag">'+flag(m[4])+'</span></div></div>'+
@@ -619,7 +621,12 @@ function renderGroupes(){
     th.sort((x,y)=>y.P-x.P||y.D-x.D||y.B-x.B); th.slice(0,8).forEach(t=>q3.add(t.n)); }
   "ABCDEFGHIJKL".split("").forEach(g=>{
     const fr=(g==="I");
-    html+='<div class="gtitle'+(fr?' fr':'')+'"><span class="badge">Groupe '+g+'</span>'+(fr?'<span style="color:var(--fr);font-size:12px">★ France</span>':'')+'</div>';
+    const open=openGroups.has(g);
+    const chevron=open?'▾':'▸';
+    html+='<div class="gtitle'+(fr?' fr':'')+'" data-g="'+g+'">'+
+      '<span class="badge">Groupe '+g+'</span>'+
+      (fr?'<span style="color:var(--fr);font-size:12px">★ France</span>':'')+
+      '<span style="margin-left:auto;color:var(--muted);font-size:12px;font-weight:700">'+chevron+' 6 matchs</span></div>';
     const s=standings(g);
     html+='<table><tr><th></th><th class="t" style="text-align:left">Équipe</th><th>J</th><th>G</th><th>N</th><th>P</th><th>Diff</th><th>Pts</th><th>Forme</th></tr>';
     s.forEach((t,i)=>{ const cls=i<2?'q':(q3.has(t.name)?'q3':'');
@@ -629,11 +636,20 @@ function renderGroupes(){
         '<td class="pts">'+t.Pts+'</td><td>'+formHTML(t.name,teamOf)+'</td></tr>';
     });
     html+='</table>';
-    html+='<div class="mini">';
-    GM.filter(m=>m[0]===g).forEach(m=>{ html+=matchCardG(m); });
-    html+='</div>';
+    if(open){
+      html+='<div class="mini">';
+      GM.filter(m=>m[0]===g).forEach(m=>{ html+=matchCardG(m,true); });
+      html+='</div>';
+    }
   });
   root.innerHTML=html;
+  root.querySelectorAll('.gtitle[data-g]').forEach(el=>{
+    el.onclick=()=>{
+      const g=el.getAttribute('data-g');
+      if(openGroups.has(g)) openGroups.delete(g); else openGroups.add(g);
+      renderGroupes();
+    };
+  });
 }
 
 /* ----- onglet TABLEAU ----- */
@@ -698,6 +714,7 @@ function scrollToDate(d){
 
 /* ===================== ÉVÉNEMENTS ===================== */
 let active="matchs";
+let openGroups=new Set();
 document.querySelectorAll('.tab').forEach(tb=>tb.onclick=()=>{
   active=tb.getAttribute('data-v');
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===tb));
