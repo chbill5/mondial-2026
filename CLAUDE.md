@@ -53,6 +53,7 @@ APIs gratuites → **robot GitHub Actions** (~toutes les 15 min) → écrit `dat
 - Actions **Node 20 dépréciées le 16/06/2026** → tout en `@v6`.
 - **`.env` est gitignoré** : ne jamais le commiter ni coller le token dans un chat.
 - **UI GitHub en français** : `main` = « principal », `master` = « maître », Actions = « Actes », Branches = « Succursales ».
+- **TheSportsDB gratuit insuffisant** : `eventslast` ne retourne qu'1 match, les joueurs sont réservés au plan premium → **forme dérivée des résultats du Mondial** (calculée dans `formFor()`), **fiches joueurs abandonnées**.
 
 ## Décisions encore ouvertes
 - Ajouter ou non un **mode « pronostics »** (saisir ses propres scores à côté de la réalité) — mis de côté pour l'instant.

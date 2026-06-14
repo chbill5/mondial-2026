@@ -485,8 +485,30 @@ function chBadges(list){
 
 /* ===================== RENDU : composants ===================== */
 function flag(n){return TEAMS[n]?TEAMS[n][0]:"⚪";}
-function formHTML(n){ if(!TEAMS[n])return "";
-  return '<span class="form">'+TEAMS[n][3].split("").map(c=>'<b class="f'+c+'"></b>').join("")+'</span>'; }
+function resultChar(isHome,h,a){
+  if(h===a) return "N";
+  return ((h>a)===isHome) ? "W" : "L";
+}
+function formFor(name,teamOf){
+  const played=[];
+  GM.forEach(m=>{
+    if(m[3]!==name&&m[4]!==name) return;
+    const r=R[m.id]; if(!r||r.h===""||r.a===""||r.h==null||r.a==null) return;
+    played.push({date:m[1],hr:m[2],char:resultChar(m[3]===name,+r.h,+r.a)});
+  });
+  KO.forEach(m=>{
+    const t=teamOf[m.id]; if(!t) return;
+    if(t.a!==name&&t.b!==name) return;
+    const r=R[m.id]; if(!r||r.h===""||r.a===""||r.h==null||r.a==null) return;
+    played.push({date:m.date,hr:m.h,char:resultChar(t.a===name,+r.h,+r.a)});
+  });
+  played.sort((x,y)=> DATE_ORDER.indexOf(y.date)-DATE_ORDER.indexOf(x.date)||hourVal(y.hr)-hourVal(x.hr));
+  const chars=played.map(p=>p.char);
+  const pre=(TEAMS[name]&&TEAMS[name][3])?TEAMS[name][3].split(""): [];
+  return chars.concat(pre).slice(0,5).join("");
+}
+function formHTML(n,teamOf){ if(!TEAMS[n]) return "";
+  return '<span class="form">'+formFor(n,teamOf).split("").map(c=>'<b class="f'+c+'"></b>').join("")+'</span>'; }
 function probBar(p,ko){
   if(ko){ return '<div class="probwrap"><div class="probbar">'+
     '<i style="width:'+pct(p.h)+'%;background:var(--hbar)"></i>'+
@@ -587,6 +609,7 @@ function slotLabel(ref){ const [k,v]=ref.split(":");
 /* ----- onglet POULES ----- */
 function renderGroupes(){
   const root=document.getElementById('groupes');
+  const {teamOf}=koResolve();
   let html=dataBanner();
   html+='<div class="legend">Qualifié direct (top 2) <b style="background:#bdeccd"></b>'+
     ' · meilleur 3e <b style="background:#ffe6ad"></b> · Forme : '+
@@ -603,7 +626,7 @@ function renderGroupes(){
       const diff=(t.BP-t.BC>0?'+':'')+(t.BP-t.BC);
       html+='<tr class="'+cls+'"><td>'+(i+1)+'</td><td class="t">'+flag(t.name)+' '+t.name+'</td>'+
         '<td>'+t.J+'</td><td>'+t.G+'</td><td>'+t.N+'</td><td>'+t.P+'</td><td>'+diff+'</td>'+
-        '<td class="pts">'+t.Pts+'</td><td>'+formHTML(t.name)+'</td></tr>';
+        '<td class="pts">'+t.Pts+'</td><td>'+formHTML(t.name,teamOf)+'</td></tr>';
     });
     html+='</table>';
     html+='<div class="mini">';
