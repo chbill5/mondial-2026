@@ -19,7 +19,7 @@ if (!KEY || KEY.trim() === "") {
 const EN_TO_FR = {
   "Mexico":"Mexique","South Africa":"Afrique du Sud","South Korea":"Corée du Sud",
   "Czech Republic":"Tchéquie","Czechia":"Tchéquie",
-  "Canada":"Canada","Bosnia and Herzegovina":"Bosnie-Herzégovine","Qatar":"Qatar",
+  "Canada":"Canada","Bosnia and Herzegovina":"Bosnie-Herzégovine","Bosnia & Herzegovina":"Bosnie-Herzégovine","Qatar":"Qatar",
   "Switzerland":"Suisse",
   "Brazil":"Brésil","Morocco":"Maroc","Haiti":"Haïti","Scotland":"Écosse",
   "United States":"États-Unis","USA":"États-Unis","Paraguay":"Paraguay",
