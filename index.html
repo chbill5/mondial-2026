@@ -65,8 +65,9 @@
     font-size:11px; font-weight:700; cursor:default; color:var(--ink)}
   .tabwin button.sel{background:var(--gold); border-color:#e0ad1f}
   /* groups */
-  .gtitle{display:flex; align-items:center; gap:8px; margin:16px 0 6px; font-weight:800; cursor:pointer; user-select:none}
-  .gtitle:hover .badge{opacity:.85}
+  .gtitle{display:flex; align-items:center; gap:8px; margin:16px 0 6px; font-weight:800; cursor:pointer; user-select:none;
+    border-radius:8px; padding:3px 4px; transition:background .12s}
+  .gtitle:hover{background:rgba(0,0,0,.05)}
   .gtitle .badge{background:var(--green); color:#fff; border-radius:7px; padding:2px 9px; font-size:13px}
   .gtitle.fr .badge{background:var(--fr)}
   table{width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line);
@@ -614,8 +615,10 @@ function renderGroupes(){
   const {teamOf}=koResolve();
   let html=dataBanner();
   html+='<div class="legend">Qualifié direct (top 2) <b style="background:#bdeccd"></b>'+
-    ' · meilleur 3e <b style="background:#ffe6ad"></b> · Forme : '+
-    '<b class="fW"></b>V <b class="fN"></b>N <b class="fL"></b>D (du + récent au + ancien)</div>';
+    ' · meilleur 3e <b style="background:#ffe6ad"></b><br>'+
+    'Forme : <b class="fW"></b>V <b class="fN"></b>N <b class="fL"></b>D — 5 derniers résultats, du + récent (à gauche) au + ancien.'+
+    ' Les résultats du Mondial remplissent les cases de gauche au fil des matchs ;'+
+    ' les suivantes sont une forme indicative d\'avant-tournoi (saisie à la main, pas une source live).</div>';
   let q3=new Set();
   if(allGroupsDone()){ let th="ABCDEFGHIJKL".split("").map(g=>{const s=standings(g)[2];return {g,n:s.name,P:s.Pts,D:s.BP-s.BC,B:s.BP};});
     th.sort((x,y)=>y.P-x.P||y.D-x.D||y.B-x.B); th.slice(0,8).forEach(t=>q3.add(t.n)); }
