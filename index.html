@@ -65,8 +65,14 @@
     font-size:11px; font-weight:700; cursor:default; color:var(--ink)}
   .tabwin button.sel{background:var(--gold); border-color:#e0ad1f}
   /* groups */
-  .gtitle{display:flex; align-items:center; gap:8px; margin:16px 0 6px; font-weight:800; cursor:pointer; user-select:none;
-    border-radius:8px; padding:3px 4px; transition:background .12s}
+  .gcard{cursor:pointer;user-select:none;margin-top:14px;border-radius:10px;transition:background .15s}
+  .gcard:hover{background:rgba(0,0,0,.03)}
+  .gcard.fr:hover{background:rgba(31,58,147,.025)}
+  .gbtn{text-align:center;font-size:12px;font-weight:700;padding:8px 12px;
+    background:#eef2f4;border:1px solid var(--line);border-radius:8px;
+    color:#506070;margin-top:5px}
+  .gtitle{display:flex; align-items:center; gap:8px; font-weight:800; user-select:none;
+    border-radius:8px; padding:6px 4px 4px; transition:background .12s}
   .gtitle:hover{background:rgba(0,0,0,.05)}
   .gtitle .badge{background:var(--green); color:#fff; border-radius:7px; padding:2px 9px; font-size:13px}
   .gtitle.fr .badge{background:var(--fr)}
@@ -651,10 +657,13 @@ function renderGroupes(){
     const fr=(g==="I");
     const open=openGroups.has(g);
     const chevron=open?'▾':'▸';
-    html+='<div class="gtitle'+(fr?' fr':'')+'" data-g="'+g+'">'+
+    const matchCount=GM.filter(m=>m[0]===g).length;
+    const btnLabel=open?'▴ Masquer les matchs':'▾ Afficher les '+matchCount+' matchs';
+    html+='<div class="gcard'+(fr?' fr':'')+'" data-g="'+g+'">';
+    html+='<div class="gtitle'+(fr?' fr':'')+'">'+
       '<span class="badge">Groupe '+g+'</span>'+
       (fr?'<span style="color:var(--fr);font-size:12px">★ France</span>':'')+
-      '<span style="margin-left:auto;color:var(--muted);font-size:12px;font-weight:700">'+chevron+' 6 matchs</span></div>';
+      '<span style="margin-left:auto;color:var(--muted);font-size:12px;font-weight:700">'+chevron+'</span></div>';
     const s=standings(g);
     html+='<table><tr><th></th><th class="t" style="text-align:left">Équipe</th><th>J</th><th>G</th><th>N</th><th>P</th><th>Diff</th><th>Pts</th><th>Forme</th></tr>';
     s.forEach((t,i)=>{ const cls=i<2?'q':(q3.has(t.name)?'q3':'');
@@ -664,6 +673,8 @@ function renderGroupes(){
         '<td class="pts">'+t.Pts+'</td><td>'+formHTML(t.name,teamOf)+'</td></tr>';
     });
     html+='</table>';
+    html+='<div class="gbtn">'+btnLabel+'</div>';
+    html+='</div>';
     if(open){
       html+='<div class="mini">';
       GM.filter(m=>m[0]===g).forEach(m=>{ html+=matchCardG(m,true); });
@@ -671,7 +682,7 @@ function renderGroupes(){
     }
   });
   root.innerHTML=html;
-  root.querySelectorAll('.gtitle[data-g]').forEach(el=>{
+  root.querySelectorAll('.gcard[data-g]').forEach(el=>{
     el.onclick=()=>{
       const g=el.getAttribute('data-g');
       if(openGroups.has(g)) openGroups.delete(g); else openGroups.add(g);
@@ -836,6 +847,7 @@ let active="matchs";
 let openGroups=new Set();
 document.querySelectorAll('.tab').forEach(tb=>tb.onclick=()=>{
   active=tb.getAttribute('data-v');
+  openGroups.clear(); // auto-repli à chaque changement d'onglet
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===tb));
   ['matchs','groupes','tableau','parie'].forEach(v=>document.getElementById(v).style.display=(v===active?'':'none'));
   // autoFocus=true uniquement sur l'onglet Matchs (pas sur filtre ni saisie)
