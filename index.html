@@ -106,6 +106,11 @@
     padding:8px 12px;font-size:12px;margin-bottom:10px;color:#856404}
   .dstamp{font-size:10.5px;color:var(--muted);text-align:right;margin-bottom:6px;font-weight:600}
   .loading{text-align:center;padding:40px 12px;color:var(--muted);font-size:13px;font-weight:700}
+  /* Badges chaînes */
+  .ch{display:inline-block;font-size:9px;font-weight:800;border-radius:4px;
+      padding:1px 4px;margin:3px 3px 0 0;line-height:1.3;white-space:nowrap}
+  .ch.m6{background:#ffe1ea;color:#c81e5b}
+  .ch.bein{background:#e7defb;color:#5b3aa6}
 </style>
 </head>
 <body>
@@ -415,6 +420,69 @@ function koResolve(){
   return {teamOf,winners};
 }
 
+/* ===================== CHAÎNES DE DIFFUSION ===================== */
+// À compléter quand M6 annonce sa sélection (ids ex. "G0", "M97"…)
+const M6_EXTRA = new Set([
+  // 14/6 et avant
+  "G0",   // Mexique–Afrique du Sud (match d'ouverture)
+  "G6",   // Canada–Bosnie
+  "G7",   // Qatar–Suisse
+  "G12",  // Brésil–Maroc
+  "G24",  // Allemagne–Curaçao
+  "G30",  // Pays-Bas–Japon
+  // 15–17/6
+  "G42",  // Espagne–Cap-Vert
+  "G36",  // Belgique–Égypte
+  "G43",  // Arabie saoudite–Uruguay
+  "G48",  // France–Sénégal
+  "G49",  // Irak–Norvège
+  "G60",  // Portugal–RD Congo
+  "G66",  // Angleterre–Croatie
+  // 18–21/6
+  "G2",   // Tchéquie–Afrique du Sud
+  "G8",   // Suisse–Bosnie
+  "G20",  // États-Unis–Australie
+  "G14",  // Écosse–Maroc
+  "G32",  // Pays-Bas–Suède
+  "G26",  // Allemagne–Côte d'Ivoire
+  "G44",  // Espagne–Arabie saoudite
+  "G38",  // Belgique–Iran
+  // 22–28/6
+  "G56",  // Argentine–Autriche
+  "G50",  // France–Irak
+  "G62",  // Portugal–Ouzbékistan
+  "G68",  // Angleterre–Ghana
+  "G10",  // Suisse–Canada
+  "G16",  // Écosse–Brésil
+  "G17",  // Maroc–Haïti
+  "G29",  // Équateur–Allemagne
+  "G35",  // Tunisie–Pays-Bas
+  "G52",  // Norvège–France
+  "G70",  // Panama–Angleterre
+  "G71",  // Croatie–Ghana
+  "G64"   // Colombie–Portugal
+]);
+
+function chGroup(m){         // m = entrée de GM
+  const c=["beIN"];
+  if(m[3]==="France"||m[4]==="France"||M6_EXTRA.has(m.id)) c.unshift("M6");
+  return c;
+}
+function chKO(m,a,b){        // m = entrée de KO ; a,b = noms résolus (peuvent être null)
+  const c=["beIN"];
+  const m6=m.st==="Demi-finales"||m.st==="3e place"||m.st==="Finale"
+            ||a==="France"||b==="France"||M6_EXTRA.has(m.id);
+  if(m6) c.unshift("M6");
+  return c;
+}
+function chBadges(list){
+  return list.map(c=>{
+    const isM6=c==="M6";
+    return '<span class="ch '+(isM6?"m6":"bein")+'" title="'+(isM6?"Gratuit (M6 / M6+)":"Abonnement (beIN Sports, TV)")+'">'+
+      (isM6?"M6":"beIN TV")+'</span>';
+  }).join("");
+}
+
 /* ===================== RENDU : composants ===================== */
 function flag(n){return TEAMS[n]?TEAMS[n][0]:"⚪";}
 function formHTML(n){ if(!TEAMS[n])return "";
@@ -448,7 +516,7 @@ function dataBanner(){
 
 /* ----- onglet MATCHS ----- */
 let fGroup="ALL";
-function renderMatchs(){
+function renderMatchs(autoFocus){
   const root=document.getElementById('matchs');
   let html=dataBanner();
   html+='<div class="filters"><select id="gsel">';
@@ -470,14 +538,16 @@ function renderMatchs(){
   }
   list.sort((x,y)=> DATE_ORDER.indexOf(x.date)-DATE_ORDER.indexOf(y.date) || hourVal(x.h)-hourVal(y.h));
 
-  let cur="";
+  let cur=""; const dates=new Set();
   list.forEach(it=>{
-    if(it.date!==cur){ cur=it.date; html+='<div class="daygroup">'+frDate(cur)+'</div>'; }
+    if(it.date!==cur){ cur=it.date; dates.add(cur); html+='<div class="daygroup" data-date="'+cur+'">'+frDate(cur)+'</div>'; }
     html+= it.type==="G" ? matchCardG(it.m) : matchCardK(it.m,it.res);
   });
   root.innerHTML=html;
   document.getElementById('gsel').value=fGroup;
+  // Pas d'autoFocus sur changement de filtre
   document.getElementById('gsel').onchange=e=>{fGroup=e.target.value; renderMatchs();};
+  if(autoFocus) requestAnimationFrame(()=>scrollToDate(focusDate(dates)));
 }
 function matchCardG(m){
   const r=R[m.id]; const isFR=(m[3]==="France"||m[4]==="France");
@@ -485,7 +555,7 @@ function matchCardG(m){
   const p=probGroup(TEAMS[m[3]][2],TEAMS[m[4]][2]);
   const liveTag=isLive?'<span class="live-badge">● EN COURS</span>':'';
   return '<div class="card'+(isFR?' fr':'')+'">'+
-    '<div class="mrow"><div class="meta">'+m[2]+liveTag+'<br><span class="g">Gr. '+m[0]+'</span></div>'+
+    '<div class="mrow"><div class="meta">'+m[2]+liveTag+'<br><span class="g">Gr. '+m[0]+'</span><br>'+chBadges(chGroup(m))+'</div>'+
     '<div class="side"><span class="flag">'+flag(m[3])+'</span><span class="tn">'+m[3]+'</span></div>'+
     scoreInputs(m.id,r)+
     '<div class="side r"><span class="tn">'+m[4]+'</span><span class="flag">'+flag(m[4])+'</span></div></div>'+
@@ -499,7 +569,7 @@ function matchCardK(m,res){
   const aH=a?('<span class="flag">'+flag(a)+'</span><span class="tn">'+a+'</span>'):'<span class="ph">'+slotLabel(m.a)+'</span>';
   const bH=b?('<span class="tn">'+b+'</span><span class="flag">'+flag(b)+'</span>'):'<span class="ph">'+slotLabel(m.b)+'</span>';
   let pbar=''; if(a&&b){ pbar=probBar(probKO(TEAMS[a][2],TEAMS[b][2]),true); }
-  let body='<div class="mrow"><div class="meta">'+m.h+liveTag+'<br><span class="g">'+m.st+'</span></div>'+
+  let body='<div class="mrow"><div class="meta">'+m.h+liveTag+'<br><span class="g">'+m.st+'</span><br>'+chBadges(chKO(m,a,b))+'</div>'+
     '<div class="side">'+aH+'</div>'+scoreInputs(m.id,r)+'<div class="side r">'+bH+'</div></div>'+pbar;
   // Afficher le vainqueur t.a.b. en lecture seule si connu
   if(a&&b&&r&&r.h!=null&&r.a!=null&&r.h!==""&&r.a!==""&&(+r.h===+r.a)&&r.w){
@@ -580,29 +650,58 @@ function kline(mid,ref,name,w,side,r){
 }
 function frDate(d){ const p=d.split("/"); return p[0]+" "+(p[1]==="6"?"juin":"juillet"); }
 
+/* ----- Scroll sur le jour courant ----- */
+// Choix de convention : on suit les dates J/M du calendrier en heure locale (CEST, UTC+2 en été).
+// Un match à "4h" le 14/6 est bien le samedi 14 juin à 4h du matin — même jour calendaire.
+// new Date() est déjà en heure locale du navigateur, pas besoin de conversion fuseau.
+function todayKey(){ const n=new Date(); return n.getDate()+"/"+(n.getMonth()+1); }
+
+function focusDate(dates){
+  const ti=DATE_ORDER.indexOf(todayKey());
+  const ord=[...dates].sort((a,b)=>DATE_ORDER.indexOf(a)-DATE_ORDER.indexOf(b));
+  if(!ord.length) return null;
+  if(ti<0) return ord[0];                                          // avant le Mondial
+  if(ord.includes(todayKey())) return todayKey();                  // aujourd'hui a des matchs
+  return ord.find(d=>DATE_ORDER.indexOf(d)>=ti)||ord[ord.length-1]; // prochain jour, ou dernier
+}
+
+function scrollToDate(d){
+  if(!d) return;
+  const el=document.querySelector('.daygroup[data-date="'+d+'"]'); if(!el) return;
+  const headH=document.querySelector('header').offsetHeight;
+  const y=el.getBoundingClientRect().top+window.pageYOffset-headH-6;
+  window.scrollTo({top:y,behavior:'auto'});
+}
+
 /* ===================== ÉVÉNEMENTS ===================== */
 let active="matchs";
 document.querySelectorAll('.tab').forEach(tb=>tb.onclick=()=>{
   active=tb.getAttribute('data-v');
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===tb));
   ['matchs','groupes','tableau'].forEach(v=>document.getElementById(v).style.display=(v===active?'':'none'));
-  rerender();
+  // autoFocus=true uniquement sur l'onglet Matchs (pas sur filtre ni saisie)
+  if(active==="matchs") renderMatchs(true);
+  else if(active==="groupes") renderGroupes();
+  else renderTableau();
 });
 
 document.getElementById('refreshBtn').onclick=async()=>{
   const btn=document.getElementById('refreshBtn');
   btn.textContent="⟳…"; btn.disabled=true;
   await loadLiveData();
-  rerender();
+  // Actualiser scrolle aussi sur le jour courant si on est sur l'onglet Matchs
+  if(active==="matchs") renderMatchs(true);
+  else rerender();
   btn.textContent="⟳ Actualiser"; btn.disabled=false;
 };
 
+// rerender sans scroll (changements internes : filtre, recalcul)
 function rerender(){ if(active==="matchs")renderMatchs(); else if(active==="groupes")renderGroupes(); else renderTableau(); }
 
 /* ===================== INIT ===================== */
 async function init(){
   await loadLiveData();
-  renderMatchs();
+  renderMatchs(true); // ouvre sur les matchs du jour au chargement
 }
 init();
 </script>
