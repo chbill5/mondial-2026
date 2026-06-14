@@ -1,166 +1,62 @@
-# Mondial 2026 — Documentation projet
+# CLAUDE.md — Projet « Mondial 2026 »
 
-## Objectif
+> Fichier de contexte pour Claude Code. À lire en début de session.
+> Dernière mise à jour : 13 juin 2026.
 
-Application web en français pour suivre la Coupe du monde 2026 : résultats en direct,
-classements de poules, tableau final, probabilités et statistiques des équipes.
-Hébergée gratuitement sur **GitHub Pages**, sans serveur à gérer.
+## En une phrase
+App web de suivi de la Coupe du monde 2026 (poules, matchs, scores live, probabilités V-N-D, classements, tableau final) qui se met à jour **toute seule**, hébergée **gratuitement** sur GitHub Pages, alimentée par un robot GitHub Actions.
 
----
+## Coordonnées
+- **Dépôt** : https://github.com/chbill5/mondial-2026 — public, branche par défaut = `main`
+- **Site** : https://chbill5.github.io/mondial-2026/
+- **Dossier local** : `C:\Users\chebi\Documents\AI\Création application Coupe du monde 2026` (Windows / PowerShell)
+- **Outils** : Node v24, npm 11.9, git 2.53 — construit avec Claude Code (Sonnet 4.6, Claude Pro)
 
-## Architecture (à respecter strictement)
+## Architecture (« Option B »)
+APIs gratuites → **robot GitHub Actions** (~toutes les 15 min) → écrit `data/*.json` dans le dépôt → **GitHub Pages** sert le site → `index.html` **lit les JSON** et calcule le reste (classements, tableau, probas).
+**Aucune clé dans le code** : tout est dans les **GitHub Secrets**.
 
-```
-GitHub Actions (toutes les ~15 min)
-  └─> Appelle les API externes (API-Football, The Odds API)
-  └─> Traite les données
-  └─> Écrit des fichiers JSON dans data/
+## Fichiers clés
+- `index.html` — toute l'app (UI + logique de calcul). Lit `data/*.json`, mappe les équipes par code/TLA, injecte les scores en **lecture seule**, recalcule classements + tableau. Conserve : design, probas V-N-D, forme 5 derniers, surlignage France.
+- `scripts/fetch-data.js` — Node (fetch natif + `--env-file`). Écrit `data/fixtures.json` + `data/standings.json`.
+- `.github/workflows/update-data.yml` — robot de mise à jour.
+- `.env` (local, **gitignoré**) + GitHub Secret `FOOTBALL_DATA_TOKEN`.
+- `.gitignore`, `CLAUDE.md`.
 
-GitHub Pages (site statique)
-  └─> index.html + assets
-  └─> Lit UNIQUEMENT les fichiers JSON de data/
-  └─> N'appelle JAMAIS les API directement
-```
+## Source de données
+- **football-data.org** — fixtures, résultats, classements de la CDM.
+  - Base : `https://api.football-data.org/v4` · header `X-Auth-Token` · compétition `WC`
+  - Endpoints : `/competitions/WC/matches`, `/competitions/WC/standings`
+  - Token : GitHub Secret **`FOOTBALL_DATA_TOKEN`** (+ `.env` local, jamais commité)
+  - Limites : 10 req/min, scores légèrement différés, **pas** de joueurs ni de cotes sur le plan gratuit
+- **API-Football : ABANDONNÉ** — son plan gratuit bloque la saison 2026.
+- *Prévues (pas encore branchées)* : **TheSportsDB** (joueurs + forme) ; **The Odds API** (cotes Winamax/Betclic FR).
 
-**Règles impératives :**
-- Les clés API sont stockées dans les **GitHub Secrets**, jamais dans le code.
-- Le site est 100 % statique et hors-ligne capable (localStorage pour les saisies manuelles).
-- Les scripts d'ingestion sont dans `scripts/` et tournent via GitHub Actions (`.github/workflows/`).
-- Les données fraîches arrivent dans `data/` — le front-end les lit avec `fetch()`.
+## FAIT ✅
+- Structure projet + git + `CLAUDE.md` + `.gitignore`.
+- `scripts/fetch-data.js` (football-data.org : `/competitions/WC/matches` + `/standings`) → `data/fixtures.json` + `data/standings.json`.
+- Workflow `update-data.yml` : cron `*/15` + `workflow_dispatch`, `actions/checkout@v6` + `actions/setup-node@v6`, commit des JSON **seulement si changés**, `permissions: contents: write`. **Testé, tourne tout seul.**
+- GitHub Pages **en ligne** (Deploy from a branch → `main` → `/root`).
+- `index.html` **branché sur les données live** : lit les JSON, scores live en lecture seule, classements + tableau recalculés ; design / probas V-N-D / forme / surlignage France conservés.
+- Dernier commit code de référence : `49c9dee`.
 
----
+## Roadmap restante (ordre proposé)
+1. **Phase 3 — UX + diffusion** : ouvrir l'onglet Matchs **sur les matchs du jour** (remonter pour les précédents) + **chaînes** (beIN sur les 104 matchs ; M6 sur les matchs de la France + match d'ouverture + demi-finales + finale). *Aucune nouvelle source.*
+2. **Phase 4 — Forme & fiches équipes** : V/N/D des **5 derniers** sur chaque affiche + **clic sur une équipe → joueurs + 10 derniers matchs**. *Via TheSportsDB (nouvelle source + extension du robot).*
+3. **Phase 5 — Onglet « Parie »** : meilleures cotes **Winamax/Betclic**. *Via The Odds API (clé dans Secrets + extension du robot).*
+4. **Phase 6 — Onglet « Adversaires possibles en finale »** : choisir une équipe → adversaires possibles en finale classés par probabilité, mis à jour. *Calcul sur le tableau + niveaux, pas de nouvelle source.*
 
-## Sources de données
+## Pièges déjà rencontrés (ne pas refaire)
+- **API-Football gratuit** ne donne pas la saison 2026 → utiliser football-data.org.
+- GitHub **n'indexe les workflows que depuis la branche par défaut** → `main` doit rester la branche par défaut (on avait poussé `master` au départ) et Pages doit pointer sur `main`.
+- **Permissions du workflow** : régler sur **« Read and write »** (Paramètres → Actions → Général).
+- Actions **Node 20 dépréciées le 16/06/2026** → tout en `@v6`.
+- **`.env` est gitignoré** : ne jamais le commiter ni coller le token dans un chat.
+- **UI GitHub en français** : `main` = « principal », `master` = « maître », Actions = « Actes », Branches = « Succursales ».
 
-| Source | Données fournies | Variable secrète |
-|---|---|---|
-| **football-data.org** | Scores, calendrier, classements des poules | `FOOTBALL_DATA_TOKEN` |
-| **The Odds API** | Cotes Winamax et Betclic pour chaque match | `ODDS_API_KEY` (à venir) |
+## Décisions encore ouvertes
+- Ajouter ou non un **mode « pronostics »** (saisir ses propres scores à côté de la réalité) — mis de côté pour l'instant.
 
-> ~~API-Football~~ abandonné : plan gratuit bloqué sur les saisons 2022–2024, pas d'accès à 2026.
-
-### football-data.org — détails techniques
-
-- **Endpoint de base** : `https://api.football-data.org/v4`
-- **Authentification** : header `X-Auth-Token: <token>`
-- **Compétition** : `WC` (Coupe du monde)
-- **Plan gratuit** : 10 requêtes/minute — 2 appels seulement à chaque exécution
-
-**Endpoints utilisés :**
-
-| Endpoint | Fichier produit | Description |
-|---|---|---|
-| `GET /competitions/WC/matches` | `data/fixtures.json` | Tous les matchs + scores |
-| `GET /competitions/WC/standings` | `data/standings.json` | Classements des poules |
-
----
-
-## App actuelle — base (index.html)
-
-`index.html` est une Single Page App autonome (vanilla JS, zero dépendance) avec :
-
-- **48 équipes** dans 12 groupes (A à L), données Elo + forme 5 matchs codées en dur.
-- **72 matchs de poule** (tableau `GM`) avec groupes, dates, heures et affrontements.
-- **32 matchs de phase finale** (tableau `KO`, M73→M104) avec résolution automatique des slots.
-- **3 onglets** :
-  - *Matchs* : liste chronologique avec filtres groupe/France/KO, saisie de scores, barres de probabilités V/N/D.
-  - *Poules* : tableau de classement par groupe (J/G/N/P/Diff/Pts + forme), mise à jour en temps réel.
-  - *Tableau* : bracket 16es → Finale, remplissage automatique selon les scores saisis.
-- **Probabilités** calculées via Elo (formule standard 400 points) :
-  - Phase de poules : V / Nul / D
-  - Phase finale : V domicile / V extérieur (pas de nul)
-- **Sauvegarde automatique** via `localStorage` (clé `cdm2026_v1`).
-- **Chemin France** mis en évidence (highlight doré sur les matchs M77, M89, M97, M101, M104).
-- **3es places** : algorithme de backtracking pour affecter les 8 meilleurs 3es aux 8 slots selon les règles FIFA.
-
----
-
-## Fonctionnalités visées (roadmap)
-
-### Phase 1 — Infrastructure données ✅ (complète)
-- `scripts/fetch-data.js` — 2 appels API (fixtures + standings), écrit dans `data/`
-- `package.json` — script `npm run fetch` pour lancer localement
-- `.github/workflows/update-data.yml` — robot cloud toutes les ~15 min + déclenchement manuel
-
-**Fichiers JSON produits :**
-- `data/fixtures.json` — tous les matchs avec scores (104 matchs)
-- `data/standings.json` — classements des 12 groupes
-
-**À venir (phases suivantes) :**
-- `data/odds.json` — cotes Winamax / Betclic
-- `data/players.json` — effectifs et stats par équipe
-- `data/form.json` — 10 derniers matchs de chaque équipe
-
-**Lancement local :**
-```bash
-# 1. Ajouter le token dans .env : FOOTBALL_DATA_TOKEN=ton_token_ici
-# 2. Lancer :
-npm run fetch
-```
-
-**Lancement sur GitHub Actions :**
-- Automatique toutes les ~15 min (cron non garanti à la minute près)
-- Manuel : onglet Actions > "Mise à jour des données" > Run workflow
-- Prérequis : dépôt sur GitHub + secret `FOOTBALL_DATA_TOKEN` dans Settings > Secrets > Actions
-
-**Fonctionnement du workflow (`update-data.yml`) :**
-1. Checkout du dépôt
-2. Setup Node.js 24
-3. Exécute `node scripts/fetch-data.js` avec `FOOTBALL_DATA_TOKEN` depuis les Secrets
-4. `git add data/` → commit uniquement si les JSON ont changé → push
-5. GitHub Pages se redéploie automatiquement à chaque push sur la branche principale
-
-### Phase 2 — Mise à jour automatique du front-end
-- `index.html` lit `data/matches.json` au lieu des saisies manuelles.
-- Mise à jour automatique du tableau après les poules (plus de saisie manuelle).
-- Scores et probabilités V/N/D recalculés en temps réel depuis les données live.
-
-### Phase 3 — Fiche équipe (clic sur une équipe)
-- Vue détaillée : effectif complet (joueurs, poste, club, âge).
-- 10 derniers matchs de l'équipe avec scores et adversaires.
-- Forme V/N/D calculée sur les 10 derniers matchs.
-
-### Phase 4 — Enrichissement des affiches
-- Sur chaque carte de match : forme des 5 derniers matchs des 2 équipes côte à côte.
-- Dates et horaires précis + chaînes de diffusion (M6 / beIN Sports).
-
-### Phase 5 — Onglet Paris
-- Onglet dédié aux cotes Winamax et Betclic pour chaque match.
-- Comparaison côte à côte des deux bookmakers.
-- Mise à jour automatique via `data/odds.json`.
-
-### Phase 6 — Onglet Adversaires possibles
-- Pour la France (ou toute équipe sélectionnée) : liste de tous les adversaires possibles en finale.
-- Classés par probabilité de croiser cet adversaire en finale.
-- Mise à jour dynamique au fil de la compétition.
-
----
-
-## Structure des dossiers
-
-```
-/
-├── index.html              # App principale (SPA vanilla JS)
-├── CLAUDE.md               # Cette documentation
-├── .gitignore
-├── .env                    # Clés locales — JAMAIS commité
-├── package.json            # Script npm run fetch
-├── .github/
-│   └── workflows/
-│       └── update-data.yml     # Robot cloud toutes les ~15 min
-├── data/                   # Fichiers JSON écrits par GitHub Actions
-│   ├── fixtures.json       # Tous les matchs + scores
-│   └── standings.json      # Classements des poules
-└── scripts/
-    └── fetch-data.js       # Script d'ingestion (2 appels API)
-```
-
----
-
-## Conventions de développement
-
-- **Langue** : tout en français (UI, commentaires, noms de variables métier).
-- **Zéro dépendance front-end** : vanilla JS uniquement, pas de framework.
-- **Scripts back-end** : Node.js ≥ 22, `fetch` natif, `--env-file=.env` natif — zéro dépendance npm.
-- **Pas de secrets dans le code** : toujours via `process.env.MA_CLE` + GitHub Secrets.
-- **GitHub Pages** : branche `main`, dossier racine `/`. Tout fichier statique est servi.
+## Comment reprendre
+- **Construire/committer** → Claude Code dans le dossier projet (il a `CLAUDE.md` + le code + accès git).
+- **Stratégie/guidage** → nouvelle conversation dans le même Projet Claude + coller le hand-off (plus léger en tokens).
