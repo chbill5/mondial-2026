@@ -1,0 +1,44 @@
+# Workflow de mise à jour des cotes WC 2026 (The Odds API)
+#
+# Plan gratuit ≈ 500 crédits/mois — 1 requête = 1 crédit.
+# toutes les 6 h = 4 × 30 = 120 runs/mois ≈ 240 crédits max.
+
+name: Mise à jour des cotes
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-and-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Récupération des cotes
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: node scripts/fetch-odds.js
+
+      - name: Commit et push si changement
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/odds.json
+          if git diff --staged --quiet; then
+            echo "Aucune modification — pas de commit."
+          else
+            git commit -m "chore: mise à jour cotes WC 2026 [$(date -u '+%Y-%m-%d %H:%M UTC')]"
+            git push
+          fi

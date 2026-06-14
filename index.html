@@ -113,6 +113,18 @@
       padding:1px 4px;margin:3px 3px 0 0;line-height:1.3;white-space:nowrap}
   .ch.m6{background:#ffe1ea;color:#c81e5b}
   .ch.bein{background:#e7defb;color:#5b3aa6}
+  /* Onglet Parie */
+  .bk{display:inline-block;font-size:9px;font-weight:800;border-radius:4px;padding:1px 5px;line-height:1.3;white-space:nowrap;margin-top:2px}
+  .bk.wm{background:#fff1e0;color:#c2650a}
+  .bk.bc{background:#dbeafe;color:#1d4ed8}
+  .odds-row{display:flex;gap:5px;margin-top:8px}
+  .odds-cell{flex:1;text-align:center;background:#f7f9fb;border-radius:9px;padding:7px 4px;border:1px solid var(--line)}
+  .odds-lbl{font-size:10px;color:var(--muted);font-weight:700;margin-bottom:1px}
+  .odds-price{font-size:19px;font-weight:800;line-height:1.1;color:var(--ink)}
+  .odds-cmp{font-size:9px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .odds-cell.tip{background:#edfaf4;border-color:var(--green)}
+  .odds-cell.tip .odds-price{color:var(--greenD)}
+  .parie-legend{font-size:11px;color:var(--muted);margin:6px 0 14px;line-height:1.6;background:#f7f9fb;border-radius:9px;padding:8px 10px}
 </style>
 </head>
 <body>
@@ -125,12 +137,14 @@
     <div class="tab active" data-v="matchs">Matchs</div>
     <div class="tab" data-v="groupes">Poules</div>
     <div class="tab" data-v="tableau">Tableau</div>
+    <div class="tab" data-v="parie">Parie</div>
   </div>
 </header>
 <main>
   <section id="matchs"><div class="loading">⟳ Chargement des données…</div></section>
   <section id="groupes" style="display:none"></section>
   <section id="tableau" style="display:none"></section>
+  <section id="parie" style="display:none"></section>
 </main>
 <footer>
   Scores et classements mis à jour automatiquement. Probabilités V / N / D : estimation selon le niveau Elo des équipes. Données : football-data.org.
@@ -348,6 +362,17 @@ async function loadLiveData() {
     console.warn("Données live indisponibles :", e.message);
     dataError = true;
   }
+}
+
+/* ===================== COTES ===================== */
+let ODDS={}, oddsUpdated='';
+async function loadOddsData(){
+  try{
+    const res=await fetch('data/odds.json');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    ODDS=data.odds||{}; oddsUpdated=data.updated||'';
+  } catch{ ODDS={}; }
 }
 
 /* ===================== PROBAS ===================== */
@@ -715,23 +740,115 @@ function scrollToDate(d){
   window.scrollTo({top:y,behavior:'auto'});
 }
 
+/* ----- onglet PARIE ----- */
+function oddsBookBadge(book){
+  if(!book) return '';
+  const wm=book.includes('winamax');
+  return '<span class="bk '+(wm?'wm':'bc')+'">'+(wm?'Winamax':'Betclic')+'</span>';
+}
+function oddsCell(lbl,oddData,appPct,isGroup){
+  const price=oddData?oddData.price:null;
+  const book=oddData?oddData.book:null;
+  const impPct=price?Math.round(100/price):null;
+  const tip=isGroup&&appPct!=null&&impPct!=null&&(appPct-impPct)>=8;
+  let cmp='';
+  if(isGroup&&appPct!=null&&impPct!=null)
+    cmp='<div class="odds-cmp">App '+appPct+'%&nbsp;·&nbsp;Imp '+impPct+'%</div>';
+  return '<div class="odds-cell'+(tip?' tip':'')+'">'+
+    '<div class="odds-lbl">'+lbl+'</div>'+
+    '<div class="odds-price">'+(price!=null?price:'—')+'</div>'+
+    (book?'<div>'+oddsBookBadge(book)+'</div>':'')+
+    cmp+'</div>';
+}
+function oddsCardG(m){
+  const o=ODDS[m.id]||{}; const isFR=m[3]==='France'||m[4]==='France';
+  const p=probGroup(TEAMS[m[3]][2],TEAMS[m[4]][2]);
+  return '<div class="card'+(isFR?' fr':'')+'">'+
+    '<div class="mrow">'+
+    '<div class="meta">'+m[2]+'<br><span class="g">Gr. '+m[0]+'</span></div>'+
+    '<div class="side"><span class="flag">'+flag(m[3])+'</span><span class="tn">'+m[3]+'</span></div>'+
+    '<span class="dash">vs</span>'+
+    '<div class="side r"><span class="tn">'+m[4]+'</span><span class="flag">'+flag(m[4])+'</span></div>'+
+    '</div>'+
+    '<div class="odds-row">'+
+    oddsCell('1',o.h,pct(p.h),true)+
+    oddsCell('N',o.n,pct(p.d),true)+
+    oddsCell('2',o.a,pct(p.a),true)+
+    '</div></div>';
+}
+function oddsCardK(m,res){
+  const o=ODDS[m.id]||{}; const a=res.a,b=res.b; const isFR=FR_PATH.has(m.id);
+  return '<div class="card'+(isFR?' fr':'')+'">'+
+    '<div class="mrow">'+
+    '<div class="meta">'+m.h+'<br><span class="g">'+m.st+'</span></div>'+
+    '<div class="side"><span class="flag">'+flag(a)+'</span><span class="tn">'+a+'</span></div>'+
+    '<span class="dash">vs</span>'+
+    '<div class="side r"><span class="tn">'+b+'</span><span class="flag">'+flag(b)+'</span></div>'+
+    '</div>'+
+    '<div class="odds-row">'+
+    oddsCell('1',o.h,null,false)+
+    oddsCell('N',o.n,null,false)+
+    oddsCell('2',o.a,null,false)+
+    '</div></div>';
+}
+function renderParie(){
+  const root=document.getElementById('parie'); const {teamOf}=koResolve();
+  let html='';
+  if(oddsUpdated){
+    const d=new Date(oddsUpdated);
+    html+='<div class="dstamp">Cotes mises à jour le '+
+      d.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})+' à '+
+      d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div>';
+  }
+  if(!Object.keys(ODDS).length){
+    html+='<div class="errbanner">Cotes temporairement indisponibles.</div>';
+    root.innerHTML=html; return;
+  }
+  html+='<div class="parie-legend">Cotes = meilleure des deux (Winamax / Betclic). '+
+    'La comparaison avec l\'estimation de l\'app est indicative, pas un conseil de pari.</div>';
+  const items=[];
+  GM.forEach(m=>{
+    if(!ODDS[m.id]) return;
+    const r=R[m.id]; if(r&&r.h!==""&&r.h!=null&&r.a!==""&&r.a!=null) return;
+    items.push({type:'G',date:m[1],h:m[2],m});
+  });
+  KO.forEach(m=>{
+    if(!ODDS[m.id]) return;
+    const r=R[m.id]; if(r&&r.h!==""&&r.h!=null&&r.a!==""&&r.a!=null) return;
+    const res=teamOf[m.id]; if(!res||!res.a||!res.b) return;
+    items.push({type:'K',date:m.date,h:m.h,m,res});
+  });
+  items.sort((x,y)=>DATE_ORDER.indexOf(x.date)-DATE_ORDER.indexOf(y.date)||hourVal(x.h)-hourVal(y.h));
+  if(!items.length){
+    html+='<div class="loading">Tous les matchs avec cotes sont terminés.</div>';
+    root.innerHTML=html; return;
+  }
+  let cur='';
+  items.forEach(it=>{
+    if(it.date!==cur){cur=it.date;html+='<div class="daygroup">'+frDate(cur)+'</div>';}
+    html+=it.type==='G'?oddsCardG(it.m):oddsCardK(it.m,it.res);
+  });
+  root.innerHTML=html;
+}
+
 /* ===================== ÉVÉNEMENTS ===================== */
 let active="matchs";
 let openGroups=new Set();
 document.querySelectorAll('.tab').forEach(tb=>tb.onclick=()=>{
   active=tb.getAttribute('data-v');
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===tb));
-  ['matchs','groupes','tableau'].forEach(v=>document.getElementById(v).style.display=(v===active?'':'none'));
+  ['matchs','groupes','tableau','parie'].forEach(v=>document.getElementById(v).style.display=(v===active?'':'none'));
   // autoFocus=true uniquement sur l'onglet Matchs (pas sur filtre ni saisie)
   if(active==="matchs") renderMatchs(true);
   else if(active==="groupes") renderGroupes();
+  else if(active==="parie") renderParie();
   else renderTableau();
 });
 
 document.getElementById('refreshBtn').onclick=async()=>{
   const btn=document.getElementById('refreshBtn');
   btn.textContent="⟳…"; btn.disabled=true;
-  await loadLiveData();
+  await Promise.all([loadLiveData(), loadOddsData()]);
   // Actualiser scrolle aussi sur le jour courant si on est sur l'onglet Matchs
   if(active==="matchs") renderMatchs(true);
   else rerender();
@@ -739,11 +856,11 @@ document.getElementById('refreshBtn').onclick=async()=>{
 };
 
 // rerender sans scroll (changements internes : filtre, recalcul)
-function rerender(){ if(active==="matchs")renderMatchs(); else if(active==="groupes")renderGroupes(); else renderTableau(); }
+function rerender(){ if(active==="matchs")renderMatchs(); else if(active==="groupes")renderGroupes(); else if(active==="parie")renderParie(); else renderTableau(); }
 
 /* ===================== INIT ===================== */
 async function init(){
-  await loadLiveData();
+  await Promise.all([loadLiveData(), loadOddsData()]);
   renderMatchs(true); // ouvre sur les matchs du jour au chargement
 }
 init();
