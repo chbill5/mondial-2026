@@ -1,7 +1,7 @@
 // Récupère matchs + classements Coupe du monde 2026 depuis football-data.org
 // Usage : node --env-file=.env scripts/fetch-data.js
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -43,6 +43,36 @@ function writeData(filename, data) {
 
 function now() {
   return new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris" });
+}
+
+// ── Garde « heures de match » ─────────────────────────────────────────────
+// On n'appelle l'API que si un match est imminent (<10 min), en cours, ou
+// vient de finir. Sinon on sort sans consommer d'appel. Un lancement manuel
+// (workflow_dispatch) ou FORCE_FETCH=1 force le rafraîchissement.
+const FORCE = process.env.GITHUB_EVENT_NAME === "workflow_dispatch"
+           || process.env.FORCE_FETCH === "1";
+
+function matchWindowOpen() {
+  const fx = join(DATA, "fixtures.json");
+  if (!existsSync(fx)) return true;                 // 1er run : on amorce
+  let matches = [];
+  try { matches = JSON.parse(readFileSync(fx, "utf8")).matches ?? []; }
+  catch { return true; }                            // fichier illisible : on rafraîchit
+  if (matches.length === 0) return true;
+
+  const LEAD = 10  * 60 * 1000;                      // 10 min avant le coup d'envoi
+  const RUN  = 160 * 60 * 1000;                      // 90' + mi-temps + prolong./t.a.b. + marge
+  const nowMs = Date.now();
+  return matches.some(m => {
+    if (!m.utcDate) return false;
+    const ko = new Date(m.utcDate).getTime();
+    return nowMs >= ko - LEAD && nowMs <= ko + RUN;
+  });
+}
+
+if (!FORCE && !matchWindowOpen()) {
+  console.log(`⏸  Aucun match en cours ni imminent (${now()}). Aucun appel API.`);
+  process.exit(0);
 }
 
 // ── Appels API (séquentiels : plan gratuit = 10 req/min) ─────────────────────

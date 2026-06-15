@@ -10,7 +10,10 @@ name: Mise à jour des données
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    # Heures de match en UTC (été : France = UTC+2).
+    # 16:00–23:55 UTC = 18h00–01h55 (France) ; 00:00–08:55 UTC = 02h00–10h55 (France).
+    - cron: "*/5 16-23 * * *"
+    - cron: "*/5 0-8 * * *"
   workflow_dispatch:
 
 permissions:

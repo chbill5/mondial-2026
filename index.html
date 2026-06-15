@@ -447,7 +447,7 @@ function thirdsAssign(){
   function bt(i){ if(i===slots.length)return true; const s=slots[i];
     for(const g of T_ALLOWED[s]){ if(groupsIn.includes(g)&&!used[g]){ used[g]=1;res[s]=g; if(bt(i+1))return true; delete used[g]; } }
     return false; }
-  if(!bt(0)){ slots.forEach((s,i)=>res[s]=groupsIn[i]); }
+  if(!bt(0)) return null;
   const out={}; for(const s in res){ out[s]=standings(res[s])[2].name; }
   return out;
 }
@@ -903,6 +903,7 @@ function renderParie(){
 
 /* ===================== SIMULATION FINALE ===================== */
 let finaleTarget = "France";
+let finaleCache = null;   // {key, target, html}
 
 function simulateFinalists(target, N) {
   N = N || 20000;
@@ -948,7 +949,7 @@ function simulateFinalists(target, N) {
       }
       return false;
     }
-    if(!bt(0)) slots.forEach(function(s,i){ res[s]=groupsIn[i]; });
+    if(!bt(0)) return null;
     const out = {};
     for(const s in res) out[s] = simStandings(res[s], sR)[2].name;
     return out;
@@ -1026,13 +1027,14 @@ function simulateFinalists(target, N) {
 
 function buildFinaleHTML(result, target) {
   const reach=result.reach, N=result.N, opps=result.opps;
-  const reachPct = Math.round(reach/N*100);
+  const reachPct = reach/N*100;
   const tFlag = TEAMS[target]?TEAMS[target][0]:"⚪";
+  const fmt = function(x){ return (x>=10?Math.round(x):Math.round(x*10)/10).toLocaleString('fr-FR'); };
   let html = "";
 
   html += '<div class="card" style="margin-bottom:14px;text-align:center;padding:14px 11px">';
   html += '<div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">'+tFlag+' '+target+' · probabilité d\'atteindre la finale</div>';
-  html += '<div class="finale-reach" style="color:'+(reachPct>0?'var(--greenD)':'var(--loss)')+'">'+reachPct+' %</div>';
+  html += '<div class="finale-reach" style="color:'+(reachPct>0?'var(--greenD)':'var(--loss)')+'">'+fmt(reachPct)+' %</div>';
   html += '<div class="finale-sub">sur '+N.toLocaleString('fr-FR')+' simulations Monte-Carlo</div>';
   if(reachPct===0){
     html += '<div style="margin-top:10px;font-size:12px;color:var(--muted);font-style:italic">Éliminée · aucun chemin vers la finale détecté.</div>';
@@ -1041,16 +1043,21 @@ function buildFinaleHTML(result, target) {
 
   if(opps.length>0){
     html += '<div class="finale-opp-lbl">Adversaires possibles en finale</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin:0 2px 8px;line-height:1.5">'+
+      opps.length+' équipes peuvent encore croiser '+target+' en finale. '+
+      'Une équipe éliminée — ou qui retombe dans la même moitié de tableau que '+target+' — '+
+      'ne peut plus l\'affronter en finale : sa probabilité passe à 0 % et elle quitte la liste automatiquement.'+
+      '</div>';
     const maxCount = opps[0].count;
     opps.forEach(function(o){
-      const oPct = Math.round(o.count/N*100);
+      const oPct = o.count/N*100;
       const barW = Math.round(o.count/maxCount*100);
       const oFlag = TEAMS[o.name]?TEAMS[o.name][0]:"⚪";
       html += '<div class="card" style="padding:8px 11px;margin-bottom:7px">';
       html += '<div class="finale-item">';
       html += '<span style="font-size:18px;line-height:1">'+oFlag+'</span>';
       html += '<span style="font-weight:700;font-size:13.5px;flex:1">'+o.name+'</span>';
-      html += '<span style="font-weight:800;font-size:14px">'+oPct+' %</span>';
+      html += '<span style="font-weight:800;font-size:14px">'+fmt(oPct)+' %</span>';
       html += '</div>';
       html += '<div style="height:6px;border-radius:3px;background:#e7edf1;margin-top:5px">';
       html += '<div class="finale-bar" style="width:'+barW+'%"></div>';
@@ -1061,13 +1068,20 @@ function buildFinaleHTML(result, target) {
   return html;
 }
 
-function startFinaleCalc() {
+function startFinaleCalc(force) {
   const resultDiv = document.getElementById('finale-result');
   if(!resultDiv) return;
-  resultDiv.innerHTML = '<div class="loading">Calcul en cours…</div>';
+  const key = JSON.stringify(R);
+  if(!force && finaleCache && finaleCache.key===key && finaleCache.target===finaleTarget){
+    resultDiv.innerHTML = finaleCache.html;
+    return;
+  }
+  resultDiv.innerHTML = '<div class="loading">Calcul en cours… (50 000 simulations)</div>';
   setTimeout(function(){
-    const result = simulateFinalists(finaleTarget, 20000);
-    resultDiv.innerHTML = buildFinaleHTML(result, finaleTarget);
+    const result = simulateFinalists(finaleTarget, 50000);
+    const html = buildFinaleHTML(result, finaleTarget);
+    finaleCache = {key:key, target:finaleTarget, html:html};
+    resultDiv.innerHTML = html;
   }, 0);
 }
 
@@ -1088,7 +1102,7 @@ function renderFinale() {
     finaleTarget = e.target.value;
     startFinaleCalc();
   };
-  document.getElementById('finale-btn').onclick = function(){ startFinaleCalc(); };
+  document.getElementById('finale-btn').onclick = function(){ startFinaleCalc(true); };
   startFinaleCalc();
 }
 
