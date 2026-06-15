@@ -1,10 +1,10 @@
 # CLAUDE.md — Projet « Mondial 2026 »
 
 > Fichier de contexte pour Claude Code. À lire en début de session.
-> Dernière mise à jour : 14 juin 2026.
+> Dernière mise à jour : 15 juin 2026.
 
 ## En une phrase
-App web de suivi de la Coupe du monde 2026 (poules, matchs, scores live, probabilités V-N-D, classements, tableau final) qui se met à jour **toute seule**, hébergée **gratuitement** sur GitHub Pages, alimentée par un robot GitHub Actions.
+App web de suivi de la Coupe du monde 2026 (poules, matchs, scores live, probabilités V-N-D, classements, tableau final, cotes bookmakers, simulation Monte-Carlo finale) qui se met à jour **toute seule**, hébergée **gratuitement** sur GitHub Pages, alimentée par un robot GitHub Actions.
 
 ## Coordonnées
 - **Dépôt** : https://github.com/chbill5/mondial-2026 — public, branche par défaut = `main`
@@ -29,9 +29,9 @@ APIs gratuites → **robot GitHub Actions** (~toutes les 15 min) → écrit `dat
   - Endpoints : `/competitions/WC/matches`, `/competitions/WC/standings`
   - Token : GitHub Secret **`FOOTBALL_DATA_TOKEN`** (+ `.env` local, jamais commité)
   - Limites : 10 req/min, scores légèrement différés, **pas** de joueurs ni de cotes sur le plan gratuit
+- **The Odds API** (cotes Winamax/Betclic FR) — **BRANCHÉ** → `data/odds.json`. Cron toutes les **6h** (jamais 15 min — quota limité). Secret `ODDS_API_TOKEN`.
 - **API-Football : ABANDONNÉ** — son plan gratuit bloque la saison 2026.
 - **TheSportsDB : ABANDONNÉ** — plan gratuit insuffisant (voir pièges).
-- *Prévue (pas encore branchée)* : **The Odds API** (cotes Winamax/Betclic FR) — vérifier le palier gratuit avant de coder.
 
 ## FAIT ✅
 - Structure projet + git + `CLAUDE.md` + `.gitignore`.
@@ -42,10 +42,34 @@ APIs gratuites → **robot GitHub Actions** (~toutes les 15 min) → écrit `dat
 - **Phase 3 — UX + diffusion** : onglet Matchs s'ouvre sur les matchs du jour (scroll automatique). Badges chaînes **beIN TV** (104 matchs) + **M6** (France, demies, 3e place, finale, match d'ouverture + 34 matchs de poule en clair — liste dans la constante `M6_EXTRA`). ⚠️ La sélection M6 des 16es/8es/quarts sera à compléter dans `M6_EXTRA` début juillet, après publication du tableau final.
 - **Phase 4 — Forme live (version gratuite)** : forme V/N/D calculée depuis les résultats réels du Mondial (`formFor` / `resultChar` / `formHTML`). Cases de gauche = résultats Mondial du + récent au + ancien ; cases suivantes = forme d'avant-tournoi saisie en dur (`TEAMS[][3]`). `koResolve()` calculé une fois par rendu dans `renderGroupes` pour la perf. Fiches joueurs **abandonnées** (TheSportsDB insuffisant).
 - **UX Poules** : groupes repliables (clic sur toute la barre `.gtitle`, état `openGroups` persistant entre rendus) ; date affichée sur chaque match (`matchCardG(m, showDate)`) ; légende forme expliquée (résultats Mondial vs avant-tournoi).
+- **Phase 5 — Onglet « Cotes »** : meilleures cotes Winamax/Betclic via The Odds API (`data/odds.json`). Rendu mode verdict : `oddsVerdictG()` = pronostic app + indicateur accord/désaccord marché + ligne de détail discrète. `devig()` normalise les probas implicites (marge retirée). KO : cotes seules, pas de verdict.
+- **Phase 6 — Onglet « Finale »** : `simulateFinalists(target, N=20000)` Monte-Carlo, calcule P(finale) + adversaires possibles classés par probabilité. Calcul au rendu + bouton Recalculer.
+- **Classements FIFA** : `const FIFA` en dur dans `index.html`, chiffres officiels du 11/6/2026, gelés jusqu'au 20/7/2026. `fifaTag(name)` affiche « FIFA #N » sous chaque nom, onglet Matchs uniquement.
 
-## Roadmap restante (ordre proposé)
-1. **Phase 5 — Onglet « Parie »** : meilleures cotes **Winamax/Betclic** via The Odds API. ⚠️ **Vérifier le palier gratuit en premier** (couverture bookmakers FR + quota de requêtes) avant de coder quoi que ce soit.
-2. **Phase 6 — Onglet « Adversaires possibles en finale »** : choisir une équipe → adversaires possibles en finale classés par probabilité, mis à jour. Pur calcul sur le tableau + niveaux Elo, aucune nouvelle source. Chantier conséquent — à faire en session fraîche.
+## État de l'app (MAJ 14 juin 2026)
+
+### Onglets : Matchs · Poules · Tableau · Cotes · Finale (5)
+- « Parie » renommé « Cotes » : **LIBELLÉ VISIBLE seulement**. `data-v="parie"` et tous les sélecteurs JS restent `"parie"` — ne **pas** les renommer.
+
+### Onglet Cotes (mode verdict)
+- Cote = meilleure des deux books (Winamax/Betclic), `data/odds.json`.
+- Marché % = implicite **DÉ-MARGÉE** : `devig()` = 1/cote sur les 3 issues, normalisé à 100 %.
+- Rendu match de poule : `oddsCell()` = prix + badge book seul ; `oddsVerdictG()` =
+  1. Pronostic = issue au plus haut Modèle % + mot de confiance (large favori ≥70 / favori 55–69 / léger favori 45–54 / match très ouvert <45)
+  2. Accord vs favori marché : ✓ vert « En accord » ou ⚠ ambre « Désaccord : l'app voit X, le marché Y »
+  3. Ligne détail grise discrète Modèle/Marché
+  - **PAS de barres ni pastilles** (ancien build supprimé). KO : `oddsCell()` seul.
+- Cadre : indicateur de **DIVERGENCE D'OPINION**, pas un conseil de pari (le modèle Elo ne bat pas les books). Disclaimer conservé.
+
+### Onglet Finale (Phase 6)
+- `simulateFinalists(target, N=20000)` : Monte-Carlo respectant les scores saisis, comble le reste via `probGroup`/`probKO`, résout jusqu'à M104 → P(finale) + adversaires possibles classés. Calcul au rendu + bouton Recalculer.
+
+### Classement FIFA
+- `const FIFA` (clé = nom FR), chiffres **officiels du 11/6/2026**, **GELÉS** jusqu'au 20/7/2026. **EN DUR** — ne pas re-fetch, pas de robot. France #3, Argentine #1, Espagne #2. `fifaTag(name)` affiche « FIFA #N » sous chaque nom, onglet Matchs uniquement.
+
+## Roadmap restante
+- **Début juillet** : ajouter les IDs KO (M73…M100) dans `M6_EXTRA` après le tirage du tableau (sélection M6 des phases finales annoncée à ce moment).
+- Ajouter ou non un **mode « pronostics »** (saisir ses propres scores à côté de la réalité) — mis de côté pour l'instant.
 
 ## Pièges déjà rencontrés (ne pas refaire)
 - **API-Football gratuit** ne donne pas la saison 2026 → utiliser football-data.org.
@@ -55,9 +79,8 @@ APIs gratuites → **robot GitHub Actions** (~toutes les 15 min) → écrit `dat
 - **`.env` est gitignoré** : ne jamais le commiter ni coller le token dans un chat.
 - **UI GitHub en français** : `main` = « principal », `master` = « maître », Actions = « Actes », Branches = « Succursales ».
 - **TheSportsDB gratuit insuffisant** : `eventslast` ne retourne qu'1 match (domicile seulement), les joueurs sont réservés au plan premium → **ne pas y retourner**. Forme dérivée des résultats du Mondial à la place, fiches joueurs abandonnées.
-
-## Décisions encore ouvertes
-- Ajouter ou non un **mode « pronostics »** (saisir ses propres scores à côté de la réalité) — mis de côté pour l'instant.
+- **Cotes : cron 6h maximum** — ne jamais passer à 15 min sur The Odds API, quota trop faible.
+- ⚠️ **FOOTBALL_DATA_TOKEN exposé dans une capture d'écran** → à régénérer sur football-data.org si ce n'est pas fait.
 
 ## Comment reprendre
 - **Construire/committer** → Claude Code dans le dossier projet (il a `CLAUDE.md` + le code + accès git).
