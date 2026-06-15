@@ -327,6 +327,7 @@ let R = {};            // scores live injectés depuis data/fixtures.json
 let liveIds = new Set(); // matchs EN COURS
 let dataError = false;
 let lastUpdated = "";
+let mappingWarnings = [];
 
 async function loadLiveData() {
   try {
@@ -336,6 +337,7 @@ async function loadLiveData() {
 
     R = {};
     liveIds = new Set();
+    mappingWarnings = [];
 
     // 1er passage : matchs de poule
     data.matches.forEach(m => {
@@ -346,7 +348,10 @@ async function loadLiveData() {
 
       const hFR = TLA_TO_FR[m.homeTeam?.tla];
       const aFR = TLA_TO_FR[m.awayTeam?.tla];
-      if (!hFR || !aFR) return;
+      if (!hFR || !aFR) {
+        mappingWarnings.push((m.homeTeam?.tla || "?") + " / " + (m.awayTeam?.tla || "?"));
+        return;
+      }
 
       const sh = m.score?.fullTime?.home;
       const sa = m.score?.fullTime?.away;
@@ -369,7 +374,10 @@ async function loadLiveData() {
 
       const hFR = TLA_TO_FR[m.homeTeam?.tla];
       const aFR = TLA_TO_FR[m.awayTeam?.tla];
-      if (!hFR || !aFR) return;
+      if (!hFR || !aFR) {
+        mappingWarnings.push((m.homeTeam?.tla || "?") + " / " + (m.awayTeam?.tla || "?"));
+        return;
+      }
 
       const sh = m.score?.fullTime?.home;
       const sa = m.score?.fullTime?.away;
@@ -391,6 +399,10 @@ async function loadLiveData() {
 
     lastUpdated = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
     dataError = false;
+    if (mappingWarnings.length) {
+      console.warn("⚠️ Équipes football-data non reconnues (TLA absent de TLA_TO_FR) :",
+        Array.from(new Set(mappingWarnings)).join(", "));
+    }
   } catch(e) {
     console.warn("Données live indisponibles :", e.message);
     dataError = true;
@@ -592,8 +604,12 @@ function scoreInputs(id,r){
 }
 function dataBanner(){
   if(dataError) return '<div class="errbanner">⚠️ Données live indisponibles — scores non affichés.</div>';
-  if(lastUpdated) return '<div class="dstamp">Mis à jour à '+lastUpdated+'</div>';
-  return '';
+  let b = lastUpdated ? '<div class="dstamp">Mis à jour à '+lastUpdated+'</div>' : '';
+  if(mappingWarnings.length){
+    const u = Array.from(new Set(mappingWarnings)).join(", ");
+    b += '<div class="errbanner">⚠️ Équipe(s) non reconnue(s) : '+u+' — score(s) peut-être manquant(s). Vérifier TLA_TO_FR.</div>';
+  }
+  return b;
 }
 
 /* ----- onglet MATCHS ----- */
@@ -1087,11 +1103,14 @@ function startFinaleCalc(force) {
 
 function renderFinale() {
   const root = document.getElementById('finale');
-  const teamNames = Object.keys(TEAMS).sort(function(a,b){ return a.localeCompare(b,'fr'); });
+  const rest = Object.keys(TEAMS).filter(function(t){ return t!=="France"; })
+               .sort(function(a,b){ return a.localeCompare(b,'fr'); });
+  const teamNames = TEAMS["France"] ? ["France"].concat(rest) : rest;
   let html = '<div class="filters">';
   html += '<select id="finale-sel">';
   teamNames.forEach(function(t){
     html += '<option value="'+t+'"'+(t===finaleTarget?' selected':'')+'>'+TEAMS[t][0]+' '+t+'</option>';
+    if(t==="France") html += '<option disabled>──────────</option>';
   });
   html += '</select>';
   html += '<button id="finale-btn" class="refresh" style="font-size:12px;padding:6px 10px">⟳ Recalculer</button>';
