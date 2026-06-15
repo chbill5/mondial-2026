@@ -429,6 +429,24 @@ function probGroup(rh,ra){
   return {h:pH,d:pD,a:pA};
 }
 function probKO(rh,ra){ const Eh=1/(1+Math.pow(10,(ra-rh)/400)); return {h:Eh,a:1-Eh}; }
+
+// ── Modèle de buts (loi de Poisson) pour la simulation des poules ──────────
+// Total de buts attendu (TOT) + "supériorité" dérivée de l'écart de niveau.
+// Constantes ajustables : TOT = buts moyens/match ; 130 = pts Elo ≈ 1 but
+// d'écart ; 2.2 = plafond de supériorité.
+function poissonSample(lambda){
+  if(lambda<=0) return 0;
+  const L=Math.exp(-lambda); let k=0, p=1;
+  do{ k++; p*=Math.random(); } while(p>L);
+  return k-1;
+}
+function simScore(rh,ra){
+  const TOT=2.6;
+  let sup=(rh-ra)/130;
+  if(sup>2.2) sup=2.2; else if(sup<-2.2) sup=-2.2;
+  const lh=Math.max(0.15,(TOT+sup)/2), la=Math.max(0.15,(TOT-sup)/2);
+  return { h: poissonSample(lh), a: poissonSample(la) };
+}
 const pct=x=>Math.round(x*100);
 
 /* ===================== CLASSEMENTS ===================== */
@@ -1011,15 +1029,12 @@ function simulateFinalists(target, N) {
   for(let i=0; i<N; i++){
     const sR = Object.assign({}, R);
 
-    // Simulate group matches not yet played
+    // Simulate group matches not yet played — scores via modèle de Poisson
     GM.forEach(function(m){
       const r=R[m.id];
       if(r&&r.h!=null&&r.h!==""&&r.a!=null&&r.a!=="") return;
       const rh=TEAMS[m[3]]?TEAMS[m[3]][2]:1500, ra=TEAMS[m[4]]?TEAMS[m[4]][2]:1500;
-      const p=probGroup(rh,ra), rnd=Math.random();
-      if(rnd<p.h)      sR[m.id]={h:1,a:0};
-      else if(rnd<p.h+p.d) sR[m.id]={h:0,a:0};
-      else                 sR[m.id]={h:0,a:1};
+      sR[m.id]=simScore(rh,ra);
     });
 
     const res = simKoResolve(sR);
