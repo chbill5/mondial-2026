@@ -6,7 +6,7 @@
     "count": 104,
     "first": "2026-06-11",
     "last": "2026-07-19",
-    "played": 13
+    "played": 14
   },
   "competition": {
     "id": 2000,
@@ -897,11 +897,11 @@
       },
       "id": 537363,
       "utcDate": "2026-06-15T19:00:00Z",
-      "status": "PAUSED",
+      "status": "FINISHED",
       "matchday": 1,
       "stage": "GROUP_STAGE",
       "group": "GROUP_G",
-      "lastUpdated": "2026-06-15T19:56:55Z",
+      "lastUpdated": "2026-06-15T21:03:08Z",
       "homeTeam": {
         "id": 805,
         "name": "Belgium",
@@ -917,10 +917,10 @@
         "crest": "https://crests.football-data.org/825.svg"
       },
       "score": {
-        "winner": "AWAY_TEAM",
+        "winner": "DRAW",
         "duration": "REGULAR",
         "fullTime": {
-          "home": 0,
+          "home": 1,
           "away": 1
         },
         "halfTime": {
@@ -963,11 +963,11 @@
       },
       "id": 537370,
       "utcDate": "2026-06-15T22:00:00Z",
-      "status": "TIMED",
+      "status": "IN_PLAY",
       "matchday": 1,
       "stage": "GROUP_STAGE",
       "group": "GROUP_H",
-      "lastUpdated": "2026-06-11T15:20:18Z",
+      "lastUpdated": "2026-06-15T22:30:25Z",
       "homeTeam": {
         "id": 801,
         "name": "Saudi Arabia",
@@ -983,11 +983,11 @@
         "crest": "https://crests.football-data.org/758.svg"
       },
       "score": {
-        "winner": null,
+        "winner": "DRAW",
         "duration": "REGULAR",
         "fullTime": {
-          "home": null,
-          "away": null
+          "home": 0,
+          "away": 0
         },
         "halfTime": {
           "home": null,
