@@ -330,7 +330,7 @@ let lastUpdated = "";
 
 async function loadLiveData() {
   try {
-    const res = await fetch("data/fixtures.json");
+    const res = await fetch("data/fixtures.json?t=" + Date.now());
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
 
@@ -401,7 +401,7 @@ async function loadLiveData() {
 let ODDS={}, oddsUpdated='';
 async function loadOddsData(){
   try{
-    const res=await fetch('data/odds.json');
+    const res=await fetch('data/odds.json?t=' + Date.now());
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
     ODDS=data.odds||{}; oddsUpdated=data.updated||'';
@@ -1140,6 +1140,12 @@ async function init(){
   await Promise.all([loadLiveData(), loadOddsData()]);
   renderMatchs(true); // ouvre sur les matchs du jour au chargement
 }
+// Auto-rafraîchissement pendant un match en direct (client → Pages, aucun appel API)
+setInterval(async () => {
+  if (liveIds.size === 0) return;     // rien en direct : on ne sollicite rien
+  await Promise.all([loadLiveData(), loadOddsData()]);
+  rerender();
+}, 90000);
 init();
 </script>
 </body>
