@@ -57,6 +57,22 @@
   .problbl{display:flex; justify-content:space-between; font-size:10.5px; color:var(--muted);
     margin-top:3px; font-weight:700}
   .tab-note{font-size:11px;color:#7e57c2}
+  .pred{margin-top:7px;display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+  .pred b{color:var(--ink);font-weight:800;font-size:12.5px}
+  .pred .pmuted{color:#9aa7b1;font-weight:700}
+  .ibtn{margin-left:auto;width:16px;height:16px;flex:none;border-radius:50%;border:1px solid var(--line);
+    background:#fff;color:var(--muted);font-size:10px;font-weight:800;line-height:1;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;font-style:italic;font-family:Georgia,serif}
+  .ibtn:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .modal-bg{position:fixed;inset:0;background:rgba(8,18,26,.55);z-index:50;display:none;
+    align-items:center;justify-content:center;padding:18px}
+  .modal-bg.show{display:flex}
+  .modal{background:#fff;border-radius:14px;max-width:440px;width:100%;padding:18px;
+    box-shadow:0 12px 40px rgba(0,0,0,.3);max-height:82vh;overflow:auto}
+  .modal h3{margin:0 0 10px;font-size:15px}
+  .modal p{margin:0 0 9px;font-size:12.5px;line-height:1.55;color:#384650}
+  .modal .close{margin-top:6px;width:100%;background:var(--ink);color:#fff;border:none;
+    border-radius:9px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer}
   .form{display:inline-flex; gap:3px; margin-left:4px}
   .form b{width:8px; height:8px; border-radius:2px; display:inline-block}
   .fW{background:var(--win)} .fN{background:var(--draw)} .fL{background:var(--loss)}
@@ -462,12 +478,36 @@ function poissonSample(lambda){
   do{ k++; p*=Math.random(); } while(p>L);
   return k-1;
 }
-function simScore(rh,ra){
+// Buts attendus (lambda) par équipe — SOURCE UNIQUE, partagée par la simu et le pronostic
+function goalLambdas(rh,ra){
   const TOT=2.6;
   let sup=(rh-ra)/130;
   if(sup>2.2) sup=2.2; else if(sup<-2.2) sup=-2.2;
-  const lh=Math.max(0.15,(TOT+sup)/2), la=Math.max(0.15,(TOT-sup)/2);
+  return { lh:Math.max(0.15,(TOT+sup)/2), la:Math.max(0.15,(TOT-sup)/2) };
+}
+function simScore(rh,ra){
+  const {lh,la}=goalLambdas(rh,ra);
   return { h: poissonSample(lh), a: poissonSample(la) };
+}
+// Score exact le plus probable (mode de la grille de Poisson 0..6) + sa probabilité
+function predScore(rh,ra){
+  const {lh,la}=goalLambdas(rh,ra);
+  const pois=(k,l)=>{ let f=1; for(let i=2;i<=k;i++) f*=i; return Math.exp(-l)*Math.pow(l,k)/f; };
+  let best={h:0,a:0,p:0};
+  for(let i=0;i<=6;i++) for(let j=0;j<=6;j++){
+    const p=pois(i,lh)*pois(j,la);
+    if(p>best.p) best={h:i,a:j,p};
+  }
+  return best;
+}
+// Ligne de pronostic discrète — uniquement si le match n'a pas encore de score réel
+function predLine(rh,ra,r){
+  const played = r && r.h!=null && r.h!=="" && r.a!=null && r.a!=="";
+  if(played) return '';
+  const s=predScore(rh,ra);
+  return '<div class="pred">Pronostic <b>'+s.h+'–'+s.a+'</b>'+
+    '<span class="pmuted"> · '+pct(s.p)+'% de chances</span>'+
+    '<button class="ibtn" data-info="1" type="button" aria-label="Comment est calculé ce pronostic">i</button></div>';
 }
 const pct=x=>Math.round(x*100);
 
@@ -699,7 +739,7 @@ function matchCardG(m, showDate=false){
     '<div class="side"><span class="flag">'+flag(m[3])+'</span><div><span class="tn">'+m[3]+'</span>'+fifaTag(m[3])+'</div></div>'+
     scoreInputs(m.id,r)+
     '<div class="side r"><div style="text-align:right"><span class="tn">'+m[4]+'</span>'+fifaTag(m[4])+'</div><span class="flag">'+flag(m[4])+'</span></div></div>'+
-    probBar(p,false)+'</div>';
+    probBar(p,false)+predLine(TEAMS[m[3]][2],TEAMS[m[4]][2],r)+'</div>';
 }
 function matchCardK(m,res){
   const a=res?res.a:null, b=res?res.b:null; const r=R[m.id];
@@ -710,7 +750,7 @@ function matchCardK(m,res){
   const bH=b?('<div style="text-align:right"><span class="tn">'+b+'</span>'+fifaTag(b)+'</div><span class="flag">'+flag(b)+'</span>'):'<span class="ph">'+slotLabel(m.b)+'</span>';
   let pbar=''; if(a&&b){ pbar=probBar(probKO(TEAMS[a][2],TEAMS[b][2]),true); }
   let body='<div class="mrow"><div class="meta">'+m.h+liveTag+'<br><span class="g">'+m.st+'</span><br>'+chBadges(chKO(m,a,b))+'</div>'+
-    '<div class="side">'+aH+'</div>'+scoreInputs(m.id,r)+'<div class="side r">'+bH+'</div></div>'+pbar;
+    '<div class="side">'+aH+'</div>'+scoreInputs(m.id,r)+'<div class="side r">'+bH+'</div></div>'+pbar+(a&&b?predLine(TEAMS[a][2],TEAMS[b][2],r):'');
   // Afficher le vainqueur t.a.b. en lecture seule si connu
   if(a&&b&&r&&r.h!=null&&r.a!=null&&r.h!==""&&r.a!==""&&(+r.h===+r.a)&&r.w){
     body+='<div class="tabwin">Victoire aux t.a.b. :'+
@@ -1202,6 +1242,25 @@ setInterval(async () => {
   await Promise.all([loadLiveData(), loadOddsData()]);
   rerender();
 }, 90000);
+/* ---- Modale d'explication du pronostic (point « i ») ---- */
+document.body.insertAdjacentHTML('beforeend', `
+  <div class="modal-bg" id="infoModal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3>Comment lire le pronostic ?</h3>
+      <p>Le <b>Pronostic</b> est le <b>score exact le plus probable</b> d'un match pas encore joué. Il disparaît dès qu'un vrai score est connu.</p>
+      <p><b>Sur quoi il se base :</b> le niveau de chaque équipe (note façon Elo). L'écart de niveau détermine combien de buts chacune est censée marquer.</p>
+      <p><b>Méthode :</b> on répartit un total moyen de 2,6 buts par match selon cet écart (≈ 130 points d'écart = 1 but), puis on calcule la probabilité de chaque score avec une loi de Poisson. On affiche le plus probable.</p>
+      <p>Le pourcentage est la probabilité de <b>ce score exact</b>. Même le score le plus probable ne tombe juste qu'environ 1 fois sur 7 : c'est une indication, pas une certitude. Les barres V / N / D au-dessus sont plus fiables.</p>
+      <p><small>À venir : les niveaux s'ajusteront automatiquement au fil des résultats du Mondial, donc les pronostics évolueront match après match.</small></p>
+      <button class="close mclose" type="button">Compris</button>
+    </div>
+  </div>`);
+document.addEventListener('click', e=>{
+  const mo=document.getElementById('infoModal');
+  if(e.target.closest('[data-info]')) mo.classList.add('show');
+  else if(e.target.id==='infoModal' || e.target.closest('.mclose')) mo.classList.remove('show');
+});
+
 init();
 </script>
 </body>
