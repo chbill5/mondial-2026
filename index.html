@@ -216,6 +216,26 @@ const TLA_TO_FR = {
   "ENG":"Angleterre",    "CRO":"Croatie",            "GHA":"Ghana",             "PAN":"Panama"
 };
 
+// Repli par NOM si football-data change le code TLA (ex : Uruguay URU/URY).
+// Clés = nom football-data normalisé (sans accents, minuscule).
+const normName = s => (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+const NAME_TO_FR = {
+  "algeria":"Algérie", "argentina":"Argentine", "australia":"Australie", "austria":"Autriche",
+  "belgium":"Belgique", "bosnia-herzegovina":"Bosnie-Herzégovine", "brazil":"Brésil", "canada":"Canada",
+  "cape verde islands":"Cap-Vert", "colombia":"Colombie", "congo dr":"RD Congo", "croatia":"Croatie",
+  "curacao":"Curaçao", "czechia":"Tchéquie", "ecuador":"Équateur", "egypt":"Égypte",
+  "england":"Angleterre", "france":"France", "germany":"Allemagne", "ghana":"Ghana",
+  "haiti":"Haïti", "iran":"Iran", "iraq":"Irak", "ivory coast":"Côte d'Ivoire",
+  "japan":"Japon", "jordan":"Jordanie", "mexico":"Mexique", "morocco":"Maroc",
+  "netherlands":"Pays-Bas", "new zealand":"Nouvelle-Zélande", "norway":"Norvège", "panama":"Panama",
+  "paraguay":"Paraguay", "portugal":"Portugal", "qatar":"Qatar", "saudi arabia":"Arabie saoudite",
+  "scotland":"Écosse", "senegal":"Sénégal", "south africa":"Afrique du Sud", "south korea":"Corée du Sud",
+  "spain":"Espagne", "sweden":"Suède", "switzerland":"Suisse", "tunisia":"Tunisie",
+  "turkey":"Turquie", "united states":"États-Unis", "uruguay":"Uruguay", "uzbekistan":"Ouzbékistan"
+};
+// TLA d'abord, repli sur le nom normalisé si le TLA est inconnu.
+function frTeam(t){ return TLA_TO_FR[t?.tla] || NAME_TO_FR[normName(t?.name)] || null; }
+
 // Classements FIFA (juin 2026)
 const FIFA = {
 "Argentine":1,"Espagne":2,"France":3,"Angleterre":4,"Portugal":5,"Brésil":6,
@@ -346,10 +366,11 @@ async function loadLiveData() {
       if (!isLive && !isDone) return;
       if (m.stage !== "GROUP_STAGE") return;
 
-      const hFR = TLA_TO_FR[m.homeTeam?.tla];
-      const aFR = TLA_TO_FR[m.awayTeam?.tla];
+      const hFR = frTeam(m.homeTeam);
+      const aFR = frTeam(m.awayTeam);
       if (!hFR || !aFR) {
-        mappingWarnings.push((m.homeTeam?.tla || "?") + " / " + (m.awayTeam?.tla || "?"));
+        if (!hFR) mappingWarnings.push((m.homeTeam?.tla || "?") + " (" + (m.homeTeam?.name || "?") + ")");
+        if (!aFR) mappingWarnings.push((m.awayTeam?.tla || "?") + " (" + (m.awayTeam?.name || "?") + ")");
         return;
       }
 
@@ -372,10 +393,11 @@ async function loadLiveData() {
       if (!isLive && !isDone) return;
       if (m.stage === "GROUP_STAGE") return;
 
-      const hFR = TLA_TO_FR[m.homeTeam?.tla];
-      const aFR = TLA_TO_FR[m.awayTeam?.tla];
+      const hFR = frTeam(m.homeTeam);
+      const aFR = frTeam(m.awayTeam);
       if (!hFR || !aFR) {
-        mappingWarnings.push((m.homeTeam?.tla || "?") + " / " + (m.awayTeam?.tla || "?"));
+        if (!hFR) mappingWarnings.push((m.homeTeam?.tla || "?") + " (" + (m.homeTeam?.name || "?") + ")");
+        if (!aFR) mappingWarnings.push((m.awayTeam?.tla || "?") + " (" + (m.awayTeam?.name || "?") + ")");
         return;
       }
 
