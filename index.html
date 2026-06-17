@@ -361,6 +361,7 @@ const FR_PATH = new Set(["M77","M89","M97","M101","M104"]);
 /* ===================== ÉTAT LIVE ===================== */
 let R = {};            // scores live injectés depuis data/fixtures.json
 let liveIds = new Set(); // matchs EN COURS
+let LIVE_ADJ = {};     // Phase 2 : niveaux évolutifs, recalculés à chaque maj de R
 let dataError = false;
 let lastUpdated = "";
 let mappingWarnings = [];
@@ -435,6 +436,7 @@ async function loadLiveData() {
       }
     });
 
+LIVE_ADJ = buildLiveRatings();   // Phase 2 : niveaux réajustés depuis les résultats réels
     lastUpdated = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
     dataError = false;
     if (mappingWarnings.length) {
@@ -459,6 +461,35 @@ async function loadOddsData(){
 }
 
 /* ===================== PROBAS ===================== */
+/* ===== Phase 2 : niveaux évolutifs (Elo) recalculés depuis les résultats réels ===== */
+function buildLiveRatings(){
+  const adj={}, events=[];
+  GM.forEach(m=>{ const r=R[m.id];
+    if(r && r.h!=null && r.a!=null && r.h!=="" && r.a!==""){
+      events.push({date:m[1],hr:m[2],home:m[3],away:m[4],sh:+r.h,sa:+r.a}); }
+  });
+  const { teamOf } = koResolve();
+  KO.forEach(m=>{ const r=R[m.id], res=teamOf[m.id];
+    if(res && res.a && res.b && r && r.h!=null && r.a!=null && r.h!=="" && r.a!==""){
+      events.push({date:m.date,hr:m.h,home:res.a,away:res.b,sh:+r.h,sa:+r.a}); }
+  });
+  events.sort((x,y)=> DATE_ORDER.indexOf(x.date)-DATE_ORDER.indexOf(y.date) || hourVal(x.hr)-hourVal(y.hr));
+  const K=20;                              // faible : on ajuste un prior déjà calibré
+  const rt = n => TEAMS[n][2] + (adj[n]||0);
+  events.forEach(ev=>{
+    if(!TEAMS[ev.home] || !TEAMS[ev.away]) return;
+    const Eh = 1/(1+Math.pow(10,(rt(ev.away)-rt(ev.home))/400));
+    const Sh = ev.sh>ev.sa ? 1 : (ev.sh<ev.sa ? 0 : 0.5);   // t.a.b. = nul pour l'Elo
+    const gd = Math.abs(ev.sh-ev.sa);
+    let mult = 1; if(gd===2) mult=1.5; else if(gd>=3) mult=(11+gd)/8;  // marge de buts
+    const delta = K*mult*(Sh-Eh);
+    adj[ev.home] = (adj[ev.home]||0) + delta;
+    adj[ev.away] = (adj[ev.away]||0) - delta;
+  });
+  return adj;
+}
+function liveRating(name){ return TEAMS[name] ? TEAMS[name][2] + (LIVE_ADJ[name]||0) : 1500; }
+
 function probGroup(rh,ra){
   const Eh=1/(1+Math.pow(10,(ra-rh)/400));
   const m=2*Math.abs(Eh-0.5);
@@ -731,7 +762,7 @@ function fifaTag(name){ const r=FIFA[name]; return r?'<span class="fifa-rank">FI
 function matchCardG(m, showDate=false){
   const r=R[m.id]; const isFR=(m[3]==="France"||m[4]==="France");
   const isLive=liveIds.has(m.id);
-  const p=probGroup(TEAMS[m[3]][2],TEAMS[m[4]][2]);
+  const p=probGroup(liveRating(m[3]),liveRating(m[4]));
   const liveTag=isLive?'<span class="live-badge">● EN COURS</span>':'';
   const timeLine=showDate ? m[2]+' · '+m[1]+liveTag : m[2]+liveTag;
   return '<div class="card'+(isFR?' fr':'')+'">'+
@@ -739,7 +770,7 @@ function matchCardG(m, showDate=false){
     '<div class="side"><span class="flag">'+flag(m[3])+'</span><div><span class="tn">'+m[3]+'</span>'+fifaTag(m[3])+'</div></div>'+
     scoreInputs(m.id,r)+
     '<div class="side r"><div style="text-align:right"><span class="tn">'+m[4]+'</span>'+fifaTag(m[4])+'</div><span class="flag">'+flag(m[4])+'</span></div></div>'+
-    probBar(p,false)+predLine(TEAMS[m[3]][2],TEAMS[m[4]][2],r)+'</div>';
+    probBar(p,false)+predLine(liveRating(m[3]),liveRating(m[4]),r)+'</div>';
 }
 function matchCardK(m,res){
   const a=res?res.a:null, b=res?res.b:null; const r=R[m.id];
@@ -748,9 +779,9 @@ function matchCardK(m,res){
   const liveTag=isLive?'<span class="live-badge">● EN COURS</span>':'';
   const aH=a?('<span class="flag">'+flag(a)+'</span><div><span class="tn">'+a+'</span>'+fifaTag(a)+'</div>'):'<span class="ph">'+slotLabel(m.a)+'</span>';
   const bH=b?('<div style="text-align:right"><span class="tn">'+b+'</span>'+fifaTag(b)+'</div><span class="flag">'+flag(b)+'</span>'):'<span class="ph">'+slotLabel(m.b)+'</span>';
-  let pbar=''; if(a&&b){ pbar=probBar(probKO(TEAMS[a][2],TEAMS[b][2]),true); }
+  let pbar=''; if(a&&b){ pbar=probBar(probKO(liveRating(a),liveRating(b)),true); }
   let body='<div class="mrow"><div class="meta">'+m.h+liveTag+'<br><span class="g">'+m.st+'</span><br>'+chBadges(chKO(m,a,b))+'</div>'+
-    '<div class="side">'+aH+'</div>'+scoreInputs(m.id,r)+'<div class="side r">'+bH+'</div></div>'+pbar+(a&&b?predLine(TEAMS[a][2],TEAMS[b][2],r):'');
+    '<div class="side">'+aH+'</div>'+scoreInputs(m.id,r)+'<div class="side r">'+bH+'</div></div>'+pbar+(a&&b?predLine(liveRating(a),liveRating(b),r):'');
   // Afficher le vainqueur t.a.b. en lecture seule si connu
   if(a&&b&&r&&r.h!=null&&r.a!=null&&r.h!==""&&r.a!==""&&(+r.h===+r.a)&&r.w){
     body+='<div class="tabwin">Victoire aux t.a.b. :'+
@@ -931,7 +962,7 @@ function devig(oh,on,oa){
 }
 function oddsCardG(m){
   const o=ODDS[m.id]||{}; const isFR=m[3]==='France'||m[4]==='France';
-  const p=probGroup(TEAMS[m[3]][2],TEAMS[m[4]][2]);
+  const p=probGroup(liveRating(m[3]),liveRating(m[4]));
   const mkt=devig(o.h,o.n,o.a);
   return '<div class="card'+(isFR?' fr':'')+'">'+
     '<div class="mrow">'+
@@ -1081,7 +1112,7 @@ function simulateFinalists(target, N) {
         else if(r.w) winners[m.id]=(r.w==="h"?a:b);
         else winners[m.id]=(Math.random()<0.5?a:b);
       } else {
-        const rh=TEAMS[a]?TEAMS[a][2]:1500, ra=TEAMS[b]?TEAMS[b][2]:1500;
+        const rh=TEAMS[a]?TEAMS[a][2]+(LIVE_ADJ[a]||0):1500, ra=TEAMS[b]?TEAMS[b][2]+(LIVE_ADJ[b]||0):1500;
         winners[m.id]=(Math.random()<probKO(rh,ra).h?a:b);
       }
     });
@@ -1095,7 +1126,7 @@ function simulateFinalists(target, N) {
     GM.forEach(function(m){
       const r=R[m.id];
       if(r&&r.h!=null&&r.h!==""&&r.a!=null&&r.a!=="") return;
-      const rh=TEAMS[m[3]]?TEAMS[m[3]][2]:1500, ra=TEAMS[m[4]]?TEAMS[m[4]][2]:1500;
+      const rh=TEAMS[m[3]]?TEAMS[m[3]][2]+(LIVE_ADJ[m[3]]||0):1500, ra=TEAMS[m[4]]?TEAMS[m[4]][2]+(LIVE_ADJ[m[4]]||0):1500;
       sR[m.id]=simScore(rh,ra);
     });
 
@@ -1251,7 +1282,7 @@ document.body.insertAdjacentHTML('beforeend', `
       <p><b>Sur quoi il se base :</b> le niveau de chaque équipe (note façon Elo). L'écart de niveau détermine combien de buts chacune est censée marquer.</p>
       <p><b>Méthode :</b> on répartit un total moyen de 2,6 buts par match selon cet écart (≈ 130 points d'écart = 1 but), puis on calcule la probabilité de chaque score avec une loi de Poisson. On affiche le plus probable.</p>
       <p>Le pourcentage est la probabilité de <b>ce score exact</b>. Même le score le plus probable ne tombe juste qu'environ 1 fois sur 7 : c'est une indication, pas une certitude. Les barres V / N / D au-dessus sont plus fiables.</p>
-      <p><small>À venir : les niveaux s'ajusteront automatiquement au fil des résultats du Mondial, donc les pronostics évolueront match après match.</small></p>
+      <p><small>Les niveaux s'ajustent automatiquement au fil des résultats du Mondial (méthode Elo, faible inertie) : chaque match joué affine les pronostics et probabilités suivants.</small></p>
       <button class="close mclose" type="button">Compris</button>
     </div>
   </div>`);
