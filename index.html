@@ -64,6 +64,13 @@
     background:#fff;color:var(--muted);font-size:10px;font-weight:800;line-height:1;cursor:pointer;
     display:inline-flex;align-items:center;justify-content:center;font-style:italic;font-family:Georgia,serif}
   .ibtn:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .qbar{display:flex;height:10px;border-radius:6px;overflow:hidden;border:1px solid #e7edf1;margin-bottom:8px}
+  .qbar i{display:block}
+  .qrows{display:flex;flex-direction:column;gap:3px}
+  .qrow{display:flex;justify-content:space-between;font-size:12px}
+  .qrow span:first-child{color:#46555f;font-weight:600}
+  .qrow b{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+  .qrow span:last-child{font-weight:800;color:var(--ink)}
   .modal-bg{position:fixed;inset:0;background:rgba(8,18,26,.55);z-index:50;display:none;
     align-items:center;justify-content:center;padding:18px}
   .modal-bg.show{display:flex}
@@ -544,16 +551,17 @@ const pct=x=>Math.round(x*100);
 
 /* ===================== CLASSEMENTS ===================== */
 function blank(){return {J:0,G:0,N:0,P:0,BP:0,BC:0,Pts:0};}
-function standings(g){
+function standingsFrom(g,src){
   const t={}; Object.keys(TEAMS).filter(n=>TEAMS[n][1]===g).forEach(n=>t[n]=Object.assign({name:n},blank()));
   GM.filter(m=>m[0]===g).forEach(m=>{
-    const r=R[m.id]; if(!r||r.h===""||r.a===""||r.h==null||r.a==null)return;
+    const r=src[m.id]; if(!r||r.h===""||r.a===""||r.h==null||r.a==null)return;
     const h=+r.h,a=+r.a,H=t[m[3]],A=t[m[4]]; if(!H||!A)return;
     H.J++;A.J++;H.BP+=h;H.BC+=a;A.BP+=a;A.BC+=h;
     if(h>a){H.G++;A.P++;H.Pts+=3;} else if(h<a){A.G++;H.P++;A.Pts+=3;} else {H.N++;A.N++;H.Pts++;A.Pts++;}
   });
   return Object.values(t).sort(cmp);
 }
+function standings(g){ return standingsFrom(g,R); }
 function cmp(x,y){ const dx=x.BP-x.BC, dy=y.BP-y.BC;
   return y.Pts-x.Pts || dy-dx || y.BP-x.BP || x.name.localeCompare(y.name); }
 function groupDone(g){ return GM.filter(m=>m[0]===g).every(m=>{const r=R[m.id];return r&&r.h!==""&&r.a!==""&&r.h!=null&&r.a!=null;}); }
@@ -805,6 +813,7 @@ function renderGroupes(){
     'Forme : <b class="fW"></b>V <b class="fN"></b>N <b class="fL"></b>D — 5 derniers résultats, du + récent (à gauche) au + ancien.'+
     ' Les résultats du Mondial remplissent les cases de gauche au fil des matchs ;'+
     ' les suivantes sont une forme indicative d\'avant-tournoi (saisie à la main, pas une source live).</div>';
+  html+=qualifEncart();
   let q3=new Set();
   if(allGroupsDone()){ let th="ABCDEFGHIJKL".split("").map(g=>{const s=standings(g)[2];return {g,n:s.name,P:s.Pts,D:s.BP-s.BC,B:s.BP};});
     th.sort((x,y)=>y.P-x.P||y.D-x.D||y.B-x.B); th.slice(0,8).forEach(t=>q3.add(t.n)); }
@@ -837,6 +846,8 @@ function renderGroupes(){
     html+='</div>';
   });
   root.innerHTML=html;
+  const qsel=document.getElementById('qualif-sel');
+  if(qsel){ qsel.onchange=function(e){ qualifTarget=e.target.value; startQualifCalc(); }; startQualifCalc(); }
   root.querySelectorAll('.gcard[data-g]').forEach(el=>{
     el.addEventListener('click',e=>{
       if(e.target.closest('.mini')) return;
@@ -1031,6 +1042,8 @@ function renderParie(){
 /* ===================== SIMULATION FINALE ===================== */
 let finaleTarget = "France";
 let finaleCache = null;   // {key, target, html}
+let qualifTarget = "France";
+let qualifCache = null;   // {key, target, html}
 
 function simulateFinalists(target, N) {
   N = N || 20000;
@@ -1207,6 +1220,89 @@ function startFinaleCalc(force) {
     finaleCache = {key:key, target:finaleTarget, html:html};
     resultDiv.innerHTML = html;
   }, 0);
+}
+
+/* ===== Scénarios de qualification (Monte-Carlo, par équipe) ===== */
+function simQualif(team, N){
+  N = N || 20000;
+  if(!TEAMS[team]) return null;
+  const g0 = TEAMS[team][1];
+  const groups = "ABCDEFGHIJKL".split("");
+  const pending = GM.filter(function(m){ const r=R[m.id]; return !(r&&r.h!=null&&r.h!==""&&r.a!=null&&r.a!==""); });
+  let c1=0,c2=0,c3q=0,celim=0;
+  for(let n=0;n<N;n++){
+    const sR = Object.assign({}, R);
+    pending.forEach(function(m){ sR[m.id] = simScore(liveRating(m[3]), liveRating(m[4])); });
+    const st = {};
+    groups.forEach(function(g){ st[g] = standingsFrom(g, sR); });
+    const grp = st[g0];
+    let pos=-1; for(let i=0;i<grp.length;i++){ if(grp[i].name===team){ pos=i; break; } }
+    if(pos===0) c1++;
+    else if(pos===1) c2++;
+    else if(pos===2){
+      const thirds = groups.map(function(g){ return st[g][2]; });
+      thirds.sort(function(x,y){ return y.Pts-x.Pts || (y.BP-y.BC)-(x.BP-x.BC) || y.BP-x.BP; });
+      let inTop8=false; for(let i=0;i<8 && i<thirds.length;i++){ if(thirds[i].name===team){ inTop8=true; break; } }
+      if(inTop8) c3q++; else celim++;
+    } else celim++;
+  }
+  return { p1:c1/N, p2:c2/N, p3q:c3q/N, pelim:celim/N, N:N };
+}
+function buildQualifHTML(res, team){
+  const tFlag = TEAMS[team]?TEAMS[team][0]:"⚪";
+  const g = TEAMS[team]?TEAMS[team][1]:"?";
+  const fmt = function(x){ const v=x*100; return (v>=10?Math.round(v):Math.round(v*10)/10).toLocaleString('fr-FR'); };
+  const pq = res.p1+res.p2+res.p3q;
+  let head;
+  if(res.pelim===0) head = '<span style="color:var(--greenD);font-weight:800">Qualification assurée ✓</span>';
+  else if(pq===0) head = '<span style="color:var(--loss);font-weight:800">Élimination assurée</span>';
+  else head = 'Qualification : <b style="color:var(--greenD)">'+fmt(pq)+' %</b>';
+  const bars = '<div class="qbar">'+
+    '<i style="width:'+(res.p1*100)+'%;background:#0a7d56" title="1re"></i>'+
+    '<i style="width:'+(res.p2*100)+'%;background:#1faf6b" title="2e"></i>'+
+    '<i style="width:'+(res.p3q*100)+'%;background:#f3c33b" title="3e qualifiable"></i>'+
+    '<i style="width:'+(res.pelim*100)+'%;background:#e0556b" title="éliminée"></i></div>';
+  const rows =
+    '<div class="qrow"><span><b style="background:#0a7d56"></b>1re du groupe '+g+'</span><span>'+fmt(res.p1)+' %</span></div>'+
+    '<div class="qrow"><span><b style="background:#1faf6b"></b>2e (qualifiée)</span><span>'+fmt(res.p2)+' %</span></div>'+
+    '<div class="qrow"><span><b style="background:#f3c33b"></b>3e parmi les 8 meilleurs</span><span>'+fmt(res.p3q)+' %</span></div>'+
+    '<div class="qrow"><span><b style="background:#e0556b"></b>Éliminée</span><span>'+fmt(res.pelim)+' %</span></div>';
+  return '<div class="card" style="margin-bottom:12px;padding:13px 12px">'+
+    '<div style="font-size:13px;font-weight:800;margin-bottom:8px">'+tFlag+' '+team+' — '+head+'</div>'+
+    bars+'<div class="qrows">'+rows+'</div>'+
+    '<div class="finale-sub" style="margin-top:6px">'+res.N.toLocaleString('fr-FR')+' simulations · réajusté à chaque résultat</div>'+
+    '</div>';
+}
+function startQualifCalc(force){
+  const box = document.getElementById('qualif-result');
+  if(!box) return;
+  const key = JSON.stringify(R);
+  if(!force && qualifCache && qualifCache.key===key && qualifCache.target===qualifTarget){
+    box.innerHTML = qualifCache.html; return;
+  }
+  box.innerHTML = '<div class="loading">Calcul des scénarios…</div>';
+  setTimeout(function(){
+    const r = simQualif(qualifTarget, 20000);
+    const html = r ? buildQualifHTML(r, qualifTarget) : '';
+    qualifCache = {key:key, target:qualifTarget, html:html};
+    const b = document.getElementById('qualif-result'); if(b) b.innerHTML = html;
+  }, 0);
+}
+function qualifEncart(){
+  if(allGroupsDone()) return '';
+  const rest = Object.keys(TEAMS).filter(function(t){ return t!=="France"; }).sort(function(a,b){ return a.localeCompare(b,'fr'); });
+  const names = TEAMS["France"] ? ["France"].concat(rest) : rest;
+  let h = '<div class="card" style="margin-bottom:12px;padding:11px 12px">';
+  h += '<div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:7px">Scénarios de qualification</div>';
+  h += '<div class="filters" style="margin-bottom:8px"><select id="qualif-sel">';
+  names.forEach(function(t){
+    h += '<option value="'+t+'"'+(t===qualifTarget?' selected':'')+'>'+TEAMS[t][0]+' '+t+'</option>';
+    if(t==="France") h += '<option disabled>──────────</option>';
+  });
+  h += '</select></div>';
+  h += '<div id="qualif-result"><div class="loading">Calcul des scénarios…</div></div>';
+  h += '</div>';
+  return h;
 }
 
 function renderFinale() {
