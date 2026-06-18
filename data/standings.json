@@ -75,14 +75,14 @@
             "tla": "CZE",
             "crest": "https://crests.football-data.org/798.svg"
           },
-          "playedGames": 1,
+          "playedGames": 2,
           "form": null,
           "won": 0,
-          "draw": 0,
+          "draw": 1,
           "lost": 1,
-          "points": 0,
-          "goalsFor": 1,
-          "goalsAgainst": 2,
+          "points": 1,
+          "goalsFor": 2,
+          "goalsAgainst": 3,
           "goalDifference": -1
         },
         {
@@ -94,14 +94,14 @@
             "tla": "RSA",
             "crest": "https://crests.football-data.org/9396.svg"
           },
-          "playedGames": 1,
+          "playedGames": 2,
           "form": null,
           "won": 0,
-          "draw": 0,
+          "draw": 1,
           "lost": 1,
-          "points": 0,
-          "goalsFor": 0,
-          "goalsAgainst": 2,
+          "points": 1,
+          "goalsFor": 1,
+          "goalsAgainst": 3,
           "goalDifference": -2
         }
       ]
@@ -873,9 +873,9 @@
           "draw": 0,
           "lost": 0,
           "points": 3,
-          "goalsFor": 1,
-          "goalsAgainst": 0,
-          "goalDifference": 1
+          "goalsFor": 3,
+          "goalsAgainst": 1,
+          "goalDifference": 2
         },
         {
           "position": 2,
@@ -930,9 +930,9 @@
           "draw": 0,
           "lost": 1,
           "points": 0,
-          "goalsFor": 0,
-          "goalsAgainst": 1,
-          "goalDifference": -1
+          "goalsFor": 1,
+          "goalsAgainst": 3,
+          "goalDifference": -2
         }
       ]
     },
