@@ -1006,9 +1006,47 @@ function oddsCardK(m,res){
     oddsCell('1',o.h)+oddsCell('N',o.n)+oddsCell('2',o.a)+
     '</div></div>';
 }
+function modelBacktest(){
+  let n=0,good=0,brier=0; const buckets={};
+  function tally(p,act){
+    n++; let call=null,best=-1;
+    for(const k in p){ if(p[k]>best){best=p[k];call=k;} }
+    if(call===act) good++;
+    for(const k in p){ brier+=Math.pow(p[k]-(act===k?1:0),2); }
+    const b=Math.floor(best*10)*10;
+    buckets[b]=buckets[b]||[0,0]; buckets[b][1]++; if(call===act) buckets[b][0]++;
+  }
+  GM.forEach(function(m){ const r=R[m.id];
+    if(!r||r.h==null||r.h===""||r.a==null||r.a==="")return;
+    const act=(+r.h>+r.a)?'h':((+r.a>+r.h)?'a':'d');
+    tally(probGroup(TEAMS[m[3]][2],TEAMS[m[4]][2]),act); });
+  const kr=koResolve();
+  KO.forEach(function(m){ const res=kr.teamOf[m.id], r=R[m.id];
+    if(!res||!res.a||!res.b||!r||r.h==null||r.h===""||r.a==null||r.a==="")return;
+    let act; if(+r.h>+r.a)act='h'; else if(+r.a>+r.h)act='a'; else act=(r.w==='a'?'a':'h');
+    tally(probKO(TEAMS[res.a][2],TEAMS[res.b][2]),act); });
+  return {n:n,good:good,brier:n?brier/n:0,buckets:buckets};
+}
+function buildBacktestCard(){
+  const b=modelBacktest(); if(b.n===0) return '';
+  const acc=Math.round(b.good/b.n*100);
+  const brier=b.brier.toFixed(2).replace('.',',');
+  const verdict = b.brier<0.50?'solide':(b.brier<0.58?'bon':(b.brier<0.63?'modeste':'à peine mieux que le hasard'));
+  let rows='';
+  Object.keys(b.buckets).map(Number).sort(function(x,y){return x-y;}).forEach(function(k){
+    const ok=b.buckets[k][0], tot=b.buckets[k][1];
+    rows+='<div class="qrow"><span>annonce '+k+'–'+(k+10)+'%</span><span>'+Math.round(ok/tot*100)+' % ('+ok+'/'+tot+')</span></div>';
+  });
+  return '<div class="card" style="margin-bottom:12px;padding:13px 12px">'+
+    '<div style="font-size:13px;font-weight:800;margin-bottom:6px">Fiabilité du modèle jusqu\'ici</div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Sur '+b.n+' matchs joués, le pronostic 1/N/2 s\'est vérifié <b style="color:var(--ink)">'+acc+' %</b> du temps · Brier <b style="color:var(--ink)">'+brier+'</b> (0 = parfait, 0,66 = hasard) → '+verdict+'.</div>'+
+    '<div class="qrows">'+rows+'</div>'+
+    '<div class="finale-sub" style="margin-top:6px">Jugé à partir des niveaux d\'avant-tournoi, chaque match à l\'aveugle. Les nuls comptent comme erreurs (le modèle annonce rarement un nul).</div>'+
+    '</div>';
+}
 function renderParie(){
   const root=document.getElementById('parie'); const {teamOf}=koResolve();
-  let html='';
+  let html=buildBacktestCard();
   if(oddsUpdated){
     const d=new Date(oddsUpdated);
     html+='<div class="dstamp">Cotes mises à jour le '+
