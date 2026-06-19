@@ -60,13 +60,19 @@ function matchWindowOpen() {
   catch { return true; }                            // fichier illisible : on rafraîchit
   if (matches.length === 0) return true;
 
-  const LEAD = 10  * 60 * 1000;                      // 10 min avant le coup d'envoi
-  const RUN  = 160 * 60 * 1000;                      // 90' + mi-temps + prolong./t.a.b. + marge
+  const LEAD    = 10  * 60 * 1000;                   // 10 min avant le coup d'envoi
+  const RUN     = 160 * 60 * 1000;                   // 90' + mi-temps + prolong./t.a.b. + marge
+  const CATCHUP = 12  * 60 * 60 * 1000;              // rattrapage : jusqu'à 12 h après le coup d'envoi
   const nowMs = Date.now();
   return matches.some(m => {
     if (!m.utcDate) return false;
     const ko = new Date(m.utcDate).getTime();
-    return nowMs >= ko - LEAD && nowMs <= ko + RUN;
+    // 1) fenêtre normale : juste avant / pendant / juste après le match
+    if (nowMs >= ko - LEAD && nowMs <= ko + RUN) return true;
+    // 2) rattrapage : match commencé mais pas encore FINISHED dans notre fichier
+    //    -> on réinterroge l'API jusqu'à obtenir le score, puis on s'arrête dès FINISHED
+    if (nowMs > ko + RUN && nowMs <= ko + CATCHUP && m.status !== "FINISHED") return true;
+    return false;
   });
 }
 
