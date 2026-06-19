@@ -58,6 +58,9 @@
     margin-top:3px; font-weight:700}
   .tab-note{font-size:11px;color:#7e57c2}
   .fr-hero{font-size:16px;font-weight:800;color:var(--fr);background:#eef2ff;border:1px solid #d8e0ff;border-radius:11px;padding:11px 13px;margin:4px 0 6px;text-align:center}
+  .mom-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .mom-h{font-size:12px;font-weight:800;margin-bottom:6px}
+  .mom-row{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:700;padding:3px 0}
   .sbox-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
   .sbox-mt{font-size:12.5px;font-weight:700}
   .sbox-btns{display:flex;gap:5px;flex:none}
@@ -818,6 +821,35 @@ function slotLabel(ref){ const [k,v]=ref.split(":");
   if(k==="P")return "Perdant "+v; return "?"; }
 
 /* ----- onglet POULES ----- */
+function momentumData(){
+  const played=new Set();
+  GM.forEach(function(m){ const r=R[m.id]; if(r&&r.h!=null&&r.h!==""&&r.a!=null&&r.a!=="" ){ played.add(m[3]); played.add(m[4]); } });
+  const kr=koResolve();
+  KO.forEach(function(m){ const r=R[m.id], res=kr.teamOf[m.id]; if(res&&res.a&&res.b&&r&&r.h!=null&&r.h!==""&&r.a!=null&&r.a!==""){ played.add(res.a); played.add(res.b); } });
+  const arr=[];
+  played.forEach(function(n){ if(TEAMS[n]) arr.push({name:n, d: liveRating(n)-TEAMS[n][2]}); });
+  arr.sort(function(x,y){ return y.d-x.d; });
+  return arr;
+}
+function buildMomentumCard(){
+  const arr=momentumData(); if(arr.length===0) return '';
+  const up=arr.filter(function(x){return x.d>0.05;}).slice(0,5);
+  const down=arr.filter(function(x){return x.d<-0.05;}).slice(-5).reverse();
+  const fmt=function(d){ const v=Math.round(d); return (v>0?'+':'')+v; };
+  function rowsHTML(list,color){
+    if(list.length===0) return '<div style="font-size:12px;color:var(--muted)">—</div>';
+    return list.map(function(x){
+      return '<div class="mom-row"><span>'+flag(x.name)+' '+x.name+'</span><span style="color:'+color+'">'+fmt(x.d)+'</span></div>';
+    }).join('');
+  }
+  return '<div class="card" style="margin-bottom:12px;padding:13px 12px">'+
+    '<div style="font-size:13px;font-weight:800;margin-bottom:4px">Qui monte, qui chute</div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Variation du niveau (façon Elo) depuis le début du tournoi — qui fait mieux ou moins bien que prévu.</div>'+
+    '<div class="mom-grid">'+
+      '<div><div class="mom-h" style="color:var(--greenD)">↑ En hausse</div>'+rowsHTML(up,'var(--greenD)')+'</div>'+
+      '<div><div class="mom-h" style="color:var(--loss)">↓ En baisse</div>'+rowsHTML(down,'var(--loss)')+'</div>'+
+    '</div></div>';
+}
 function renderGroupes(){
   const root=document.getElementById('groupes');
   const {teamOf}=koResolve();
@@ -828,6 +860,7 @@ function renderGroupes(){
     ' Les résultats du Mondial remplissent les cases de gauche au fil des matchs ;'+
     ' les suivantes sont une forme indicative d\'avant-tournoi (saisie à la main, pas une source live).</div>';
   html+=qualifEncart();
+  html+=buildMomentumCard();
   let q3=new Set();
   if(allGroupsDone()){ let th="ABCDEFGHIJKL".split("").map(g=>{const s=standings(g)[2];return {g,n:s.name,P:s.Pts,D:s.BP-s.BC,B:s.BP};});
     th.sort((x,y)=>y.P-x.P||y.D-x.D||y.B-x.B); th.slice(0,8).forEach(t=>q3.add(t.n)); }
