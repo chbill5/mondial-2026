@@ -58,6 +58,7 @@
     margin-top:3px; font-weight:700}
   .tab-note{font-size:11px;color:#7e57c2}
   .fr-hero{font-size:16px;font-weight:800;color:var(--fr);background:#eef2ff;border:1px solid #d8e0ff;border-radius:11px;padding:11px 13px;margin:4px 0 6px;text-align:center}
+  .proj{margin-left:6px;color:var(--ink);font-weight:700;font-size:11.5px}
   .mom-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   .mom-h{font-size:12px;font-weight:800;margin-bottom:6px}
   .mom-row{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:700;padding:3px 0}
@@ -906,11 +907,38 @@ function renderGroupes(){
 }
 
 /* ----- onglet TABLEAU ----- */
+function projectBracket(){
+  const projR = Object.assign({}, R);
+  GM.forEach(function(m){
+    const r=projR[m.id];
+    if(!(r&&r.h!=null&&r.h!==""&&r.a!=null&&r.a!=="")){
+      projR[m.id] = liveRating(m[3])>=liveRating(m[4]) ? {id:m.id,h:1,a:0} : {id:m.id,h:0,a:1};
+    }
+  });
+  const real=R; R=projR;
+  try{
+    for(let pass=0; pass<8; pass++){
+      const pr=koResolve(); let changed=false;
+      KO.forEach(function(m){
+        const res=pr.teamOf[m.id], r=projR[m.id];
+        const has = r&&r.h!=null&&r.h!==""&&r.a!=null&&r.a!=="";
+        if(res&&res.a&&res.b&&!has){
+          projR[m.id] = liveRating(res.a)>=liveRating(res.b) ? {id:m.id,h:1,a:0} : {id:m.id,h:0,a:1};
+          changed=true;
+        }
+      });
+      if(!changed) break;
+    }
+    return koResolve();
+  } finally { R=real; }
+}
 function renderTableau(){
   const root=document.getElementById('tableau'); const {teamOf,winners}=koResolve();
+  const proj=projectBracket();
   let html=dataBanner();
   html+='<div class="legend">Rempli automatiquement à partir des scores live. '+
-    'Cases jaunes = parcours de la France si 1re du groupe I.</div>';
+    'Cases jaunes = parcours de la France si 1re du groupe I.<br>'+
+    'Équipe en « ≈ » = qualifié <b>probable</b> (projeté selon le niveau, recalculé à chaque résultat) — pas encore définitif.</div>';
   const rounds=["16es","8es","Quarts","Demi-finales","3e place","Finale"];
   rounds.forEach(rd=>{
     const ms=KO.filter(m=>m.st===rd);
@@ -918,8 +946,9 @@ function renderTableau(){
     ms.forEach(m=>{ const res=teamOf[m.id], r=R[m.id], w=winners[m.id];
       const isFR=FR_PATH.has(m.id);
       html+='<div class="kcard'+(isFR?' fr':'')+'"><div class="meta" style="min-width:0;margin-bottom:2px">'+m.h+'</div>';
-      html+= kline(m.id,m.a,res?res.a:null,w,'h',r);
-      html+= kline(m.id,m.b,res?res.b:null,w,'a',r);
+      const pj=proj.teamOf[m.id]||{};
+      html+= kline(m.id,m.a,res?res.a:null,w,'h',r,pj.a);
+      html+= kline(m.id,m.b,res?res.b:null,w,'a',r,pj.b);
       if(res&&res.a&&res.b&&r&&r.h!=null&&r.a!=null&&r.h!==""&&r.a!==""&&(+r.h===+r.a)&&r.w){
         html+='<div class="tabwin">t.a.b. :'+
           '<button disabled class="'+(r.w==="h"?"sel":"")+'">'+res.a+'</button>'+
@@ -930,10 +959,10 @@ function renderTableau(){
   });
   root.innerHTML=html;
 }
-function kline(mid,ref,name,w,side,r){
+function kline(mid,ref,name,w,side,r,projName){
   const win=(name&&w===name)?' win':'';
   const left = name ? '<span class="flag">'+flag(name)+'</span><span class="tn">'+name+'</span>'
-                    : '<span class="ph">'+slotLabel(ref)+'</span>';
+                    : '<span class="ph">'+slotLabel(ref)+'</span>'+(projName?'<span class="proj">≈ '+flag(projName)+' '+projName+'</span>':'');
   const val=(r&&r[side]!=null&&r[side]!=="")?r[side]:"";
   const live=liveIds.has(mid);
   const liveAttr=live?' data-live="1"':'';
