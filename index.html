@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c1f2b">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mondial 2026">
 <title>Mondial 2026 — Mon suivi</title>
 <style>
   :root{
@@ -59,6 +64,7 @@
   .tab-note{font-size:11px;color:#7e57c2}
   .fr-hero{font-size:16px;font-weight:800;color:var(--fr);background:#eef2ff;border:1px solid #d8e0ff;border-radius:11px;padding:11px 13px;margin:4px 0 6px;text-align:center}
   .proj{margin-left:6px;color:var(--ink);font-weight:700;font-size:11.5px}
+  .errbanner.stale{background:#fff4e0;border:1px solid #f0c97a;color:#8a5a00}
   .mom-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   .mom-h{font-size:12px;font-weight:800;margin-bottom:6px}
   .mom-row{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:700;padding:3px 0}
@@ -388,7 +394,7 @@ let R = {};            // scores live injectés depuis data/fixtures.json
 let liveIds = new Set(); // matchs EN COURS
 let LIVE_ADJ = {};     // Phase 2 : niveaux évolutifs, recalculés à chaque maj de R
 let dataError = false;
-let lastUpdated = "";
+let lastUpdated = 0, dataStale=false, staleMsg="";
 let mappingWarnings = [];
 
 async function loadLiveData() {
@@ -462,7 +468,22 @@ async function loadLiveData() {
     });
 
 LIVE_ADJ = buildLiveRatings();   // Phase 2 : niveaux réajustés depuis les résultats réels
-    lastUpdated = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    dataStale=false; staleMsg="";
+    let worst=null, worstLate=0;
+    data.matches.forEach(function(m){
+      if(m.status==="FINISHED" || !m.utcDate) return;
+      const late = Date.now() - new Date(m.utcDate).getTime();
+      if(late > 130*60*1000 && late > worstLate){ worstLate=late; worst=m; }
+    });
+    if(worst){
+      dataStale=true;
+      const h=frTeam(worst.homeTeam)||(worst.homeTeam&&worst.homeTeam.name)||"?";
+      const a=frTeam(worst.awayTeam)||(worst.awayTeam&&worst.awayTeam.name)||"?";
+      const hh=Math.floor(worstLate/3600000), mm=Math.floor((worstLate%3600000)/60000);
+      const ago = hh ? (hh+' h'+(mm?' '+mm:'')) : (mm+' min');
+      staleMsg = h+'–'+a+' a débuté il y a '+ago+" mais son score n'est pas encore arrivé — données peut-être en retard.";
+    }
+    lastUpdated = Date.now();
     dataError = false;
     if (mappingWarnings.length) {
       console.warn("⚠️ Équipes football-data non reconnues (TLA absent de TLA_TO_FR) :",
@@ -739,9 +760,18 @@ function scoreInputs(id,r){
     '<input readonly'+liveAttr+' data-m="'+id+'" data-s="a" value="'+a+'">'+
     '</div>';
 }
+function agoStr(ts){
+  if(!ts) return '';
+  const s=Math.floor((Date.now()-ts)/1000);
+  if(s<60) return "à l'instant";
+  const m=Math.floor(s/60);
+  if(m<60) return 'il y a '+m+' min';
+  const h=Math.floor(m/60); return 'il y a '+h+' h '+(m%60)+' min';
+}
 function dataBanner(){
   if(dataError) return '<div class="errbanner">⚠️ Données live indisponibles — scores non affichés.</div>';
-  let b = lastUpdated ? '<div class="dstamp">Mis à jour à '+lastUpdated+'</div>' : '';
+  let b = lastUpdated ? '<div class="dstamp">Mis à jour '+agoStr(lastUpdated)+'</div>' : '';
+  if(dataStale) b += '<div class="errbanner stale">⏳ '+staleMsg+'</div>';
   if(mappingWarnings.length){
     const u = Array.from(new Set(mappingWarnings)).join(", ");
     b += '<div class="errbanner">⚠️ Équipe(s) non reconnue(s) : '+u+' — score(s) peut-être manquant(s). Vérifier TLA_TO_FR.</div>';
@@ -1577,6 +1607,9 @@ document.addEventListener('click', e=>{
 });
 
 init();
+</script>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
 </script>
 </body>
 </html>
