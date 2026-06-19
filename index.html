@@ -58,6 +58,13 @@
     margin-top:3px; font-weight:700}
   .tab-note{font-size:11px;color:#7e57c2}
   .fr-hero{font-size:16px;font-weight:800;color:var(--fr);background:#eef2ff;border:1px solid #d8e0ff;border-radius:11px;padding:11px 13px;margin:4px 0 6px;text-align:center}
+  .sbox-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+  .sbox-mt{font-size:12.5px;font-weight:700}
+  .sbox-btns{display:flex;gap:5px;flex:none}
+  .sbox-btns button{width:30px;height:28px;border:1px solid var(--line);background:#fff;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;color:var(--ink)}
+  .sbox-btns button.sel{background:var(--hbar);color:#fff;border-color:var(--hbar)}
+  .sbox-out{margin-top:10px;font-size:13.5px;font-weight:800}
+  .sbox-reset{margin-top:8px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted)}
   .pred{margin-top:8px;display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink);
     background:#eef2ff;border:1px solid #d8e0ff;border-radius:10px;padding:7px 10px}
   .pred .plbl{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
@@ -1352,6 +1359,41 @@ function qualifEncart(){
 
 /* ----- onglet FRANCE (Centre France) ----- */
 let frQualifCache=null, frFinaleCache=null;
+let SBOX={};
+function sboxPick(id,out){
+  if(out==='h') SBOX[id]={id:id,h:1,a:0};
+  else if(out==='a') SBOX[id]={id:id,h:0,a:1};
+  else SBOX[id]={id:id,h:0,a:0};
+  renderSandbox();
+}
+function sboxReset(){ SBOX={}; renderSandbox(); }
+function renderSandbox(){
+  const box=document.getElementById('fr-sbox'); if(!box) return;
+  const pend = GM.filter(function(m){ return m[0]==="I"; })
+                 .filter(function(m){ const r=R[m.id]; return !(r&&r.h!=null&&r.h!==""&&r.a!=null&&r.a!==""); });
+  const src = Object.assign({}, R, SBOX);
+  const st = standingsFrom("I", src);
+  let pos=-1; for(let i=0;i<st.length;i++){ if(st[i].name==="France"){pos=i;break;} }
+  const label = pos===0?'1re du groupe I — qualifiée':(pos===1?'2e — qualifiée':(pos===2?'3e — qualif possible selon les autres groupes':'4e — éliminée'));
+  const color = pos<2?'var(--greenD)':(pos===2?'#b8860b':'var(--loss)');
+  let rows='';
+  pend.forEach(function(m){
+    const cur=SBOX[m.id]; const sel=cur?(cur.h>cur.a?'h':(cur.a>cur.h?'a':'n')):'';
+    rows+='<div class="sbox-row"><span class="sbox-mt">'+flag(m[3])+' '+m[3]+' – '+m[4]+' '+flag(m[4])+'</span>'+
+      '<span class="sbox-btns">'+
+      '<button class="'+(sel==='h'?'sel':'')+'" onclick="sboxPick(\''+m.id+'\',\'h\')">1</button>'+
+      '<button class="'+(sel==='n'?'sel':'')+'" onclick="sboxPick(\''+m.id+'\',\'n\')">N</button>'+
+      '<button class="'+(sel==='a'?'sel':'')+'" onclick="sboxPick(\''+m.id+'\',\'a\')">2</button>'+
+      '</span></div>';
+  });
+  if(pend.length===0) rows='<div style="font-size:12px;color:var(--muted)">Tous les matchs du groupe I sont joués.</div>';
+  box.innerHTML='<div class="card" style="padding:12px">'+
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Choisis des résultats hypothétiques pour les matchs restants du groupe I (1 = équipe de gauche, 2 = droite). Rien n\'est enregistré, tes vrais scores restent intacts.</div>'+
+    rows+
+    '<div class="sbox-out" style="color:'+color+'">Dans ce scénario : <span style="color:var(--fr)">France</span> '+label+'</div>'+
+    (Object.keys(SBOX).length?'<button class="sbox-reset" onclick="sboxReset()">↺ Effacer les hypothèses</button>':'')+
+    '</div>';
+}
 function renderFrance(){
   const root=document.getElementById('france');
   let list=[];
@@ -1367,7 +1409,10 @@ function renderFrance(){
   list.forEach(function(it){ html += (it.type==="G") ? matchCardG(it.m,true) : matchCardK(it.m,it.res); });
   html+='<div class="daygroup">Objectif finale</div>';
   html+='<div id="fr-finale"><div class="loading">Calcul… (50 000 simulations)</div></div>';
+  html+='<div class="daygroup">Et si ? — bac à sable (groupe I)</div>';
+  html+='<div id="fr-sbox"></div>';
   root.innerHTML=html;
+  renderSandbox();
 
   setTimeout(function(){
     const el=document.getElementById('fr-qualif'); if(!el) return;
