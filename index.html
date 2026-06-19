@@ -57,6 +57,7 @@
   .problbl{display:flex; justify-content:space-between; font-size:10.5px; color:var(--muted);
     margin-top:3px; font-weight:700}
   .tab-note{font-size:11px;color:#7e57c2}
+  .fr-hero{font-size:16px;font-weight:800;color:var(--fr);background:#eef2ff;border:1px solid #d8e0ff;border-radius:11px;padding:11px 13px;margin:4px 0 6px;text-align:center}
   .pred{margin-top:8px;display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink);
     background:#eef2ff;border:1px solid #d8e0ff;border-radius:10px;padding:7px 10px}
   .pred .plbl{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
@@ -180,6 +181,7 @@
   </div>
   <div class="tabs">
     <div class="tab active" data-v="matchs">Matchs</div>
+    <div class="tab" data-v="france">France</div>
     <div class="tab" data-v="groupes">Poules</div>
     <div class="tab" data-v="tableau">Tableau</div>
     <div class="tab" data-v="parie">Cotes</div>
@@ -188,6 +190,7 @@
 </header>
 <main>
   <section id="matchs"><div class="loading">⟳ Chargement des données…</div></section>
+  <section id="france" style="display:none"></section>
   <section id="groupes" style="display:none"></section>
   <section id="tableau" style="display:none"></section>
   <section id="parie" style="display:none"></section>
@@ -1309,6 +1312,41 @@ function qualifEncart(){
   return h;
 }
 
+/* ----- onglet FRANCE (Centre France) ----- */
+let frQualifCache=null, frFinaleCache=null;
+function renderFrance(){
+  const root=document.getElementById('france');
+  let list=[];
+  GM.forEach(function(m){ if(m[3]==="France"||m[4]==="France") list.push({type:"G",date:m[1],hr:m[2],m:m}); });
+  const kr=koResolve();
+  KO.forEach(function(m){ if(FR_PATH.has(m.id)) list.push({type:"K",date:m.date,hr:m.h,m:m,res:kr.teamOf[m.id]}); });
+  list.sort(function(x,y){ return DATE_ORDER.indexOf(x.date)-DATE_ORDER.indexOf(y.date) || hourVal(x.hr)-hourVal(y.hr); });
+
+  let html='<div class="fr-hero">🇫🇷 La France dans ce Mondial</div>';
+  html+='<div class="daygroup">Scénarios de qualification</div>';
+  html+='<div id="fr-qualif"><div class="loading">Calcul des scénarios…</div></div>';
+  html+='<div class="daygroup">Le parcours</div>';
+  list.forEach(function(it){ html += (it.type==="G") ? matchCardG(it.m,true) : matchCardK(it.m,it.res); });
+  html+='<div class="daygroup">Objectif finale</div>';
+  html+='<div id="fr-finale"><div class="loading">Calcul… (50 000 simulations)</div></div>';
+  root.innerHTML=html;
+
+  setTimeout(function(){
+    const el=document.getElementById('fr-qualif'); if(!el) return;
+    const key=JSON.stringify(R);
+    if(frQualifCache && frQualifCache.key===key){ el.innerHTML=frQualifCache.html; return; }
+    const r=simQualif("France",20000); const h=r?buildQualifHTML(r,"France"):'';
+    frQualifCache={key:key,html:h}; el.innerHTML=h;
+  },0);
+  setTimeout(function(){
+    const el=document.getElementById('fr-finale'); if(!el) return;
+    const key=JSON.stringify(R);
+    if(frFinaleCache && frFinaleCache.key===key){ el.innerHTML=frFinaleCache.html; return; }
+    const res=simulateFinalists("France",50000); const h=buildFinaleHTML(res,"France");
+    frFinaleCache={key:key,html:h}; el.innerHTML=h;
+  },0);
+}
+
 function renderFinale() {
   const root = document.getElementById('finale');
   const rest = Object.keys(TEAMS).filter(function(t){ return t!=="France"; })
@@ -1340,9 +1378,10 @@ document.querySelectorAll('.tab').forEach(tb=>tb.onclick=()=>{
   active=tb.getAttribute('data-v');
   openGroups.clear(); // auto-repli à chaque changement d'onglet
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===tb));
-  ['matchs','groupes','tableau','parie','finale'].forEach(v=>document.getElementById(v).style.display=(v===active?'':'none'));
+  ['matchs','france','groupes','tableau','parie','finale'].forEach(v=>document.getElementById(v).style.display=(v===active?'':'none'));
   // autoFocus=true uniquement sur l'onglet Matchs (pas sur filtre ni saisie)
   if(active==="matchs") renderMatchs(true);
+  else if(active==="france") renderFrance();
   else if(active==="groupes") renderGroupes();
   else if(active==="parie") renderParie();
   else if(active==="finale") renderFinale();
