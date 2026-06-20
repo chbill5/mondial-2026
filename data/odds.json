@@ -1,37 +1,9 @@
 {
-  "updated": "2026-06-20T02:09:25.691Z",
+  "updated": "2026-06-20T08:38:38.009Z",
   "odds": {
-    "G15": {
-      "h": {
-        "price": 1,
-        "book": "betclic_fr"
-      },
-      "n": {
-        "price": 100,
-        "book": "betclic_fr"
-      },
-      "a": {
-        "price": 100,
-        "book": "betclic_fr"
-      }
-    },
-    "G21": {
-      "h": {
-        "price": 2.05,
-        "book": "betclic_fr"
-      },
-      "n": {
-        "price": 3.4,
-        "book": "winamax_fr"
-      },
-      "a": {
-        "price": 4.05,
-        "book": "betclic_fr"
-      }
-    },
     "G32": {
       "h": {
-        "price": 1.7,
+        "price": 1.69,
         "book": "betclic_fr"
       },
       "n": {
@@ -39,63 +11,63 @@
         "book": "winamax_fr"
       },
       "a": {
-        "price": 4.7,
+        "price": 4.8,
         "book": "betclic_fr"
       }
     },
     "G26": {
       "h": {
-        "price": 1.52,
-        "book": "winamax_fr"
+        "price": 1.53,
+        "book": "betclic_fr"
       },
       "n": {
         "price": 4.75,
         "book": "betclic_fr"
       },
       "a": {
-        "price": 6.1,
+        "price": 5.75,
         "book": "betclic_fr"
       }
     },
     "G27": {
       "h": {
-        "price": 1.11,
-        "book": "betclic_fr"
+        "price": 1.12,
+        "book": "winamax_fr"
       },
       "n": {
-        "price": 10,
+        "price": 9.75,
         "book": "betclic_fr"
       },
       "a": {
-        "price": 23,
+        "price": 22,
         "book": "betclic_fr"
       }
     },
     "G33": {
       "h": {
-        "price": 6.6,
+        "price": 6.25,
         "book": "betclic_fr"
       },
       "n": {
-        "price": 4.15,
-        "book": "betclic_fr"
+        "price": 4,
+        "book": "winamax_fr"
       },
       "a": {
-        "price": 1.52,
-        "book": "winamax_fr"
+        "price": 1.59,
+        "book": "betclic_fr"
       }
     },
     "G44": {
       "h": {
         "price": 1.09,
-        "book": "winamax_fr"
-      },
-      "n": {
-        "price": 10.25,
         "book": "betclic_fr"
       },
+      "n": {
+        "price": 10.5,
+        "book": "winamax_fr"
+      },
       "a": {
-        "price": 26,
+        "price": 27,
         "book": "betclic_fr"
       }
     },
@@ -203,11 +175,11 @@
         "book": "betclic_fr"
       },
       "n": {
-        "price": 7.75,
+        "price": 7,
         "book": "winamax_fr"
       },
       "a": {
-        "price": 14.5,
+        "price": 14.75,
         "book": "betclic_fr"
       }
     },
@@ -281,17 +253,45 @@
         "book": "betclic_fr"
       }
     },
-    "G4": {
+    "G16": {
       "h": {
-        "price": 3.38,
+        "price": 8,
         "book": "betclic_fr"
       },
       "n": {
-        "price": 3.6,
+        "price": 5,
         "book": "betclic_fr"
       },
       "a": {
-        "price": 2.1,
+        "price": 1.38,
+        "book": "betclic_fr"
+      }
+    },
+    "G17": {
+      "h": {
+        "price": 1.18,
+        "book": "betclic_fr"
+      },
+      "n": {
+        "price": 7.25,
+        "book": "betclic_fr"
+      },
+      "a": {
+        "price": 16,
+        "book": "betclic_fr"
+      }
+    },
+    "G4": {
+      "h": {
+        "price": 3.6,
+        "book": "betclic_fr"
+      },
+      "n": {
+        "price": 3.68,
+        "book": "betclic_fr"
+      },
+      "a": {
+        "price": 2,
         "book": "betclic_fr"
       }
     },
@@ -367,29 +367,29 @@
     },
     "G23": {
       "h": {
-        "price": 2.05,
+        "price": 2.58,
         "book": "betclic_fr"
       },
       "n": {
-        "price": 3.3,
+        "price": 2.27,
         "book": "betclic_fr"
       },
       "a": {
-        "price": 3.25,
+        "price": 3.53,
         "book": "betclic_fr"
       }
     },
     "G22": {
       "h": {
-        "price": 2.52,
+        "price": 3.05,
         "book": "betclic_fr"
       },
       "n": {
-        "price": 3.68,
+        "price": 3.73,
         "book": "betclic_fr"
       },
       "a": {
-        "price": 2.43,
+        "price": 2.07,
         "book": "betclic_fr"
       }
     },
@@ -409,7 +409,7 @@
     },
     "G53": {
       "h": {
-        "price": 1.28,
+        "price": 1.27,
         "book": "betclic_fr"
       },
       "n": {
