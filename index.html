@@ -93,6 +93,8 @@
   .qrow span:first-child{color:#46555f;font-weight:600}
   .qrow b{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:-1px;margin-right:5px}
   .qrow span:last-child{font-weight:800;color:var(--ink)}
+  .qscn{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line)}
+  .qscn-t{font-size:11px;font-weight:800;color:var(--muted);margin-bottom:4px}
   .modal-bg{position:fixed;inset:0;background:rgba(8,18,26,.55);z-index:50;display:none;
     align-items:center;justify-content:center;padding:18px}
   .modal-bg.show{display:flex}
@@ -1373,6 +1375,10 @@ function simQualif(team, N){
   const g0 = TEAMS[team][1];
   const groups = "ABCDEFGHIJKL".split("");
   const pending = GM.filter(function(m){ const r=R[m.id]; return !(r&&r.h!=null&&r.h!==""&&r.a!=null&&r.a!==""); });
+  const own = pending.filter(function(m){ return m[3]===team || m[4]===team; });
+  const lastM = (own.length===1) ? own[0] : null;
+  const isHome = lastM ? (lastM[3]===team) : false;
+  const buck = { W:{q:0,n:0}, N:{q:0,n:0}, L:{q:0,n:0} };
   let c1=0,c2=0,c3q=0,celim=0;
   for(let n=0;n<N;n++){
     const sR = Object.assign({}, R);
@@ -1381,16 +1387,28 @@ function simQualif(team, N){
     groups.forEach(function(g){ st[g] = standingsFrom(g, sR); });
     const grp = st[g0];
     let pos=-1; for(let i=0;i<grp.length;i++){ if(grp[i].name===team){ pos=i; break; } }
-    if(pos===0) c1++;
-    else if(pos===1) c2++;
+    let qualif=false;
+    if(pos===0){ c1++; qualif=true; }
+    else if(pos===1){ c2++; qualif=true; }
     else if(pos===2){
       const thirds = groups.map(function(g){ return st[g][2]; });
       thirds.sort(function(x,y){ return y.Pts-x.Pts || (y.BP-y.BC)-(x.BP-x.BC) || y.BP-x.BP; });
       let inTop8=false; for(let i=0;i<8 && i<thirds.length;i++){ if(thirds[i].name===team){ inTop8=true; break; } }
-      if(inTop8) c3q++; else celim++;
+      if(inTop8){ c3q++; qualif=true; } else celim++;
     } else celim++;
+    if(lastM){
+      const ls = sR[lastM.id]; const gf = isHome?ls.h:ls.a, ga = isHome?ls.a:ls.h;
+      const k = gf>ga ? "W" : (gf<ga ? "L" : "N");
+      buck[k].n++; if(qualif) buck[k].q++;
+    }
   }
-  return { p1:c1/N, p2:c2/N, p3q:c3q/N, pelim:celim/N, N:N };
+  const scenarios = lastM ? {
+    opp: isHome ? lastM[4] : lastM[3],
+    W: buck.W.n ? buck.W.q/buck.W.n : null,
+    N: buck.N.n ? buck.N.q/buck.N.n : null,
+    L: buck.L.n ? buck.L.q/buck.L.n : null
+  } : null;
+  return { p1:c1/N, p2:c2/N, p3q:c3q/N, pelim:celim/N, N:N, scenarios:scenarios };
 }
 function buildQualifHTML(res, team){
   const tFlag = TEAMS[team]?TEAMS[team][0]:"⚪";
@@ -1411,9 +1429,15 @@ function buildQualifHTML(res, team){
     '<div class="qrow"><span><b style="background:#1faf6b"></b>2e (qualifiée)</span><span>'+fmt(res.p2)+' %</span></div>'+
     '<div class="qrow"><span><b style="background:#f3c33b"></b>3e parmi les 8 meilleurs</span><span>'+fmt(res.p3q)+' %</span></div>'+
     '<div class="qrow"><span><b style="background:#e0556b"></b>Éliminée</span><span>'+fmt(res.pelim)+' %</span></div>';
+  let scHTML = '';
+  if(res.scenarios){
+    const s=res.scenarios;
+    const line=function(lbl,p){ return p==null ? '' : '<div class="qrow"><span>'+lbl+'</span><span><b style="color:var(--greenD)">'+fmt(p)+' %</b> qualifiée</span></div>'; };
+    scHTML = '<div class="qscn"><div class="qscn-t">Dernier match vs '+s.opp+' :</div>'+line('Victoire',s.W)+line('Nul',s.N)+line('Défaite',s.L)+'</div>';
+  }
   return '<div class="card" style="margin-bottom:12px;padding:13px 12px">'+
     '<div style="font-size:13px;font-weight:800;margin-bottom:8px">'+tFlag+' '+team+' — '+head+'</div>'+
-    bars+'<div class="qrows">'+rows+'</div>'+
+    bars+'<div class="qrows">'+rows+'</div>'+scHTML+
     '<div class="finale-sub" style="margin-top:6px">'+res.N.toLocaleString('fr-FR')+' simulations · réajusté à chaque résultat</div>'+
     '</div>';
 }
