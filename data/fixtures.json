@@ -6,7 +6,7 @@
     "count": 104,
     "first": "2026-06-11",
     "last": "2026-07-19",
-    "played": 49
+    "played": 50
   },
   "competition": {
     "id": 2000,
@@ -3197,7 +3197,7 @@
       "matchday": 3,
       "stage": "GROUP_STAGE",
       "group": "GROUP_B",
-      "lastUpdated": "2026-06-24T21:00:55Z",
+      "lastUpdated": "2026-06-24T21:05:55Z",
       "homeTeam": {
         "id": 788,
         "name": "Switzerland",
@@ -3259,11 +3259,11 @@
       },
       "id": 537338,
       "utcDate": "2026-06-24T19:00:00Z",
-      "status": "IN_PLAY",
+      "status": "FINISHED",
       "matchday": 3,
       "stage": "GROUP_STAGE",
       "group": "GROUP_B",
-      "lastUpdated": "2026-06-24T21:00:44Z",
+      "lastUpdated": "2026-06-24T21:08:54Z",
       "homeTeam": {
         "id": 1060,
         "name": "Bosnia-Herzegovina",
@@ -3325,11 +3325,11 @@
       },
       "id": 537344,
       "utcDate": "2026-06-24T22:00:00Z",
-      "status": "TIMED",
+      "status": "LIVE",
       "matchday": 3,
       "stage": "GROUP_STAGE",
       "group": "GROUP_C",
-      "lastUpdated": "2026-06-20T15:20:13Z",
+      "lastUpdated": "2026-06-24T22:23:19Z",
       "homeTeam": {
         "id": 815,
         "name": "Morocco",
@@ -3345,11 +3345,11 @@
         "crest": "https://crests.football-data.org/haiti.svg"
       },
       "score": {
-        "winner": null,
+        "winner": "AWAY_TEAM",
         "duration": "REGULAR",
         "fullTime": {
-          "home": null,
-          "away": null
+          "home": 0,
+          "away": 1
         },
         "halfTime": {
           "home": null,
@@ -3391,11 +3391,11 @@
       },
       "id": 537343,
       "utcDate": "2026-06-24T22:00:00Z",
-      "status": "TIMED",
+      "status": "LIVE",
       "matchday": 3,
       "stage": "GROUP_STAGE",
       "group": "GROUP_C",
-      "lastUpdated": "2026-06-20T15:20:13Z",
+      "lastUpdated": "2026-06-24T22:23:55Z",
       "homeTeam": {
         "id": 8873,
         "name": "Scotland",
@@ -3411,11 +3411,11 @@
         "crest": "https://crests.football-data.org/764.svg"
       },
       "score": {
-        "winner": null,
+        "winner": "AWAY_TEAM",
         "duration": "REGULAR",
         "fullTime": {
-          "home": null,
-          "away": null
+          "home": 0,
+          "away": 1
         },
         "halfTime": {
           "home": null,
