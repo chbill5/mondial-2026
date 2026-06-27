@@ -1021,7 +1021,7 @@ function renderTableau(){
     html+='<div class="round">'+rd+'<span>'+frDate(ms[0].date)+'</span></div>';
     ms.forEach(m=>{ const res=teamOf[m.id], r=R[m.id], w=winners[m.id];
       const isFR=FR_PATH.has(m.id);
-      html+='<div class="kcard'+(isFR?' fr':'')+'"><div class="meta" style="min-width:0;margin-bottom:2px">'+m.h+'</div>';
+      html+='<div class="kcard'+(isFR?' fr':'')+'"><div class="meta" style="min-width:0;margin-bottom:2px">'+frDate(m.date)+' · '+m.h+'</div>';
       const pj=proj.teamOf[m.id]||{};
       html+= kline(m.id,m.a,res?res.a:null,w,'h',r,pj.a);
       html+= kline(m.id,m.b,res?res.b:null,w,'a',r,pj.b);
