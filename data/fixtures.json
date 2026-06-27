@@ -6,7 +6,7 @@
     "count": 104,
     "first": "2026-06-11",
     "last": "2026-07-19",
-    "played": 62
+    "played": 64
   },
   "competition": {
     "id": 2000,
@@ -4117,11 +4117,11 @@
       },
       "id": 537373,
       "utcDate": "2026-06-27T00:00:00Z",
-      "status": "IN_PLAY",
+      "status": "FINISHED",
       "matchday": 3,
       "stage": "GROUP_STAGE",
       "group": "GROUP_H",
-      "lastUpdated": "2026-06-27T01:31:35Z",
+      "lastUpdated": "2026-06-27T02:07:59Z",
       "homeTeam": {
         "id": 758,
         "name": "Uruguay",
@@ -4183,11 +4183,11 @@
       },
       "id": 537374,
       "utcDate": "2026-06-27T00:00:00Z",
-      "status": "IN_PLAY",
+      "status": "FINISHED",
       "matchday": 3,
       "stage": "GROUP_STAGE",
       "group": "GROUP_H",
-      "lastUpdated": "2026-06-27T01:31:10Z",
+      "lastUpdated": "2026-06-27T02:09:26Z",
       "homeTeam": {
         "id": 1930,
         "name": "Cape Verde Islands",
