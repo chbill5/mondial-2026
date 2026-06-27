@@ -1262,26 +1262,10 @@ function simulateFinalists(target, N) {
       return Object.assign({g:g}, s);
     });
     thirds.sort(function(x,y){ return y.Pts-x.Pts||(y.BP-y.BC)-(x.BP-x.BC)||y.BP-x.BP; });
-    const top = thirds.slice(0,8);
-    const groupsIn = top.map(function(t){ return t.g; });
-    const slots = Object.keys(T_ALLOWED);
-    const used = {}, res = {};
-    function bt(i){
-      if(i===slots.length) return true;
-      const s = slots[i];
-      for(let gi=0; gi<T_ALLOWED[s].length; gi++){
-        const g = T_ALLOWED[s][gi];
-        if(groupsIn.indexOf(g)>=0 && !used[g]){
-          used[g]=1; res[s]=g;
-          if(bt(i+1)) return true;
-          delete used[g];
-        }
-      }
-      return false;
-    }
-    if(!bt(0)) return null;
+    const key = thirds.slice(0,8).map(function(t){ return t.g; }).sort().join("");
+    const row = TP_TABLE[key]; if(!row) return null;
     const out = {};
-    for(const s in res) out[s] = simStandings(res[s], sR)[2].name;
+    TP_ORDER.forEach(function(win,i){ out[TP_WIN_MATCH[win]] = simStandings(row[i], sR)[2].name; });
     return out;
   }
 
