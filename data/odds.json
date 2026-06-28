@@ -1,27 +1,27 @@
 {
-  "updated": "2026-06-28T13:10:58.982Z",
+  "updated": "2026-06-28T18:59:57.696Z",
   "odds": {
     "M73": {
       "h": {
-        "price": 6.25,
+        "price": 5,
         "book": "betclic_fr"
       },
       "n": {
-        "price": 3.8,
+        "price": 3.4,
         "book": "betclic_fr"
       },
       "a": {
-        "price": 1.64,
+        "price": 1.8,
         "book": "betclic_fr"
       }
     },
     "M76": {
       "h": {
-        "price": 1.66,
+        "price": 1.68,
         "book": "betclic_fr"
       },
       "n": {
-        "price": 3.85,
+        "price": 3.88,
         "book": "betclic_fr"
       },
       "a": {
@@ -31,21 +31,21 @@
     },
     "M75": {
       "h": {
-        "price": 2.1,
+        "price": 2.18,
         "book": "betclic_fr"
       },
       "n": {
         "price": 3.25,
-        "book": "winamax_fr"
+        "book": "betclic_fr"
       },
       "a": {
-        "price": 3.75,
+        "price": 3.53,
         "book": "betclic_fr"
       }
     },
     "M78": {
       "h": {
-        "price": 3.58,
+        "price": 3.68,
         "book": "betclic_fr"
       },
       "n": {
@@ -53,35 +53,35 @@
         "book": "winamax_fr"
       },
       "a": {
-        "price": 2.05,
+        "price": 2.03,
         "book": "betclic_fr"
       }
     },
     "M84": {
       "h": {
-        "price": 1.27,
+        "price": 1.28,
         "book": "winamax_fr"
       },
       "n": {
         "price": 5.5,
-        "book": "betclic_fr"
+        "book": "winamax_fr"
       },
       "a": {
-        "price": 12,
+        "price": 11.25,
         "book": "betclic_fr"
       }
     },
     "M83": {
       "h": {
-        "price": 1.82,
+        "price": 1.79,
         "book": "betclic_fr"
       },
       "n": {
-        "price": 3.5,
+        "price": 3.6,
         "book": "winamax_fr"
       },
       "a": {
-        "price": 4.7,
+        "price": 4.85,
         "book": "betclic_fr"
       }
     },
