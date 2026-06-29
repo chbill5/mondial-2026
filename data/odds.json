@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-29T02:12:26.249Z",
+  "updated": "2026-06-29T10:18:33.838Z",
   "odds": {
     "M76": {
       "h": {
@@ -7,11 +7,11 @@
         "book": "betclic_fr"
       },
       "n": {
-        "price": 3.8,
+        "price": 3.85,
         "book": "betclic_fr"
       },
       "a": {
-        "price": 5.25,
+        "price": 5.5,
         "book": "betclic_fr"
       }
     },
@@ -21,11 +21,11 @@
         "book": "betclic_fr"
       },
       "n": {
-        "price": 3.18,
+        "price": 3.2,
         "book": "betclic_fr"
       },
       "a": {
-        "price": 3.43,
+        "price": 3.5,
         "book": "betclic_fr"
       }
     },
@@ -35,7 +35,7 @@
         "book": "betclic_fr"
       },
       "n": {
-        "price": 3.55,
+        "price": 3.6,
         "book": "winamax_fr"
       },
       "a": {
