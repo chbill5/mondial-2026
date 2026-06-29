@@ -4913,7 +4913,7 @@
       "matchday": null,
       "stage": "LAST_32",
       "group": null,
-      "lastUpdated": "2026-06-29T21:43:45Z",
+      "lastUpdated": "2026-06-29T22:40:34Z",
       "homeTeam": {
         "id": 759,
         "name": "Germany",
@@ -4929,15 +4929,23 @@
         "crest": "https://crests.football-data.org/761.svg"
       },
       "score": {
-        "winner": "AWAY_TEAM",
-        "duration": "REGULAR",
+        "winner": "DRAW",
+        "duration": "EXTRA_TIME",
         "fullTime": {
-          "home": 0,
+          "home": 1,
           "away": 1
         },
         "halfTime": {
           "home": 0,
           "away": 1
+        },
+        "regularTime": {
+          "home": null,
+          "away": null
+        },
+        "extraTime": {
+          "home": 0,
+          "away": 0
         }
       },
       "odds": {
