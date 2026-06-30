@@ -5135,7 +5135,7 @@
       "matchday": null,
       "stage": "LAST_32",
       "group": null,
-      "lastUpdated": "2026-06-30T21:13:09Z",
+      "lastUpdated": "2026-06-30T22:40:14Z",
       "homeTeam": {
         "id": 773,
         "name": "France",
@@ -5151,15 +5151,15 @@
         "crest": "https://crests.football-data.org/792.svg"
       },
       "score": {
-        "winner": "DRAW",
+        "winner": "HOME_TEAM",
         "duration": "REGULAR",
         "fullTime": {
-          "home": 0,
+          "home": 3,
           "away": 0
         },
         "halfTime": {
-          "home": null,
-          "away": null
+          "home": 1,
+          "away": 0
         }
       },
       "odds": {
