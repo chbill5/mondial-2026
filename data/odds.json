@@ -1,17 +1,17 @@
 {
-  "updated": "2026-06-30T08:53:45.411Z",
+  "updated": "2026-06-30T13:51:50.470Z",
   "odds": {
     "M78": {
       "h": {
-        "price": 3.55,
+        "price": 3.65,
         "book": "betclic_fr"
       },
       "n": {
-        "price": 3.5,
+        "price": 3.45,
         "book": "betclic_fr"
       },
       "a": {
-        "price": 2.13,
+        "price": 2.12,
         "book": "betclic_fr"
       }
     },
