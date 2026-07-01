@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-30T19:29:25.657Z",
+  "updated": "2026-07-01T02:12:00.283Z",
   "odds": {
     "M84": {
       "h": {
@@ -31,15 +31,15 @@
     },
     "M88": {
       "h": {
-        "price": 3.33,
+        "price": 3.35,
         "book": "betclic_fr"
       },
       "n": {
-        "price": 2.95,
-        "book": "winamax_fr"
+        "price": 2.9,
+        "book": "betclic_fr"
       },
       "a": {
-        "price": 2.5,
+        "price": 2.47,
         "book": "betclic_fr"
       }
     }
