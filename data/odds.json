@@ -1,17 +1,17 @@
 {
-  "updated": "2026-07-03T13:30:37.596Z",
+  "updated": "2026-07-03T18:58:54.528Z",
   "odds": {
     "M88": {
       "h": {
-        "price": 3.75,
+        "price": 11,
         "book": "betclic_fr"
       },
       "n": {
-        "price": 2.95,
+        "price": 3.6,
         "book": "betclic_fr"
       },
       "a": {
-        "price": 2.35,
+        "price": 1.4,
         "book": "betclic_fr"
       }
     }
