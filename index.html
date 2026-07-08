@@ -449,39 +449,49 @@ async function loadLiveData() {
       if (isLive) liveIds.add(gm.id);
     });
 
-    // 2e passage : matchs KO (après avoir résolu les groupes)
-    const { teamOf } = koResolve();
-    data.matches.forEach(m => {
-      const isLive = m.status === "IN_PLAY" || m.status === "PAUSED" || m.status === "HALFTIME";
-      const isDone = m.status === "FINISHED";
-      if (!isLive && !isDone) return;
-      if (m.stage === "GROUP_STAGE") return;
+    // 2e passage : matchs KO — ingestion EN CASCADE (16es -> 8es -> quarts -> ...).
+    // Les équipes d'un tour dépendent des scores du tour précédent : on re-résout
+    // donc koResolve() après chaque tour ingéré, jusqu'à ne plus rien ajouter.
+    for (let pass = 0; pass < 8; pass++) {
+      const { teamOf } = koResolve();
+      let added = false;
+      data.matches.forEach(m => {
+        const isLive = m.status === "IN_PLAY" || m.status === "PAUSED" || m.status === "HALFTIME";
+        const isDone = m.status === "FINISHED";
+        if (!isLive && !isDone) return;
+        if (m.stage === "GROUP_STAGE") return;
 
-      const hFR = frTeam(m.homeTeam);
-      const aFR = frTeam(m.awayTeam);
-      if (!hFR || !aFR) {
-        if (!hFR) mappingWarnings.push((m.homeTeam?.tla || "?") + " (" + (m.homeTeam?.name || "?") + ")");
-        if (!aFR) mappingWarnings.push((m.awayTeam?.tla || "?") + " (" + (m.awayTeam?.name || "?") + ")");
-        return;
-      }
-
-      const sh = m.score?.fullTime?.home;
-      const sa = m.score?.fullTime?.away;
-      if (sh == null || sa == null) return;
-
-      for (const ko of KO) {
-        const res = teamOf[ko.id];
-        if (res && res.a === hFR && res.b === aFR) {
-          R[ko.id] = { id: ko.id, h: sh, a: sa };
-          // Si victoire aux t.a.b. (égalité en temps réglementaire)
-          if (isDone && sh === sa && m.score?.winner) {
-            R[ko.id].w = (m.score.winner === "HOME_TEAM") ? "h" : "a";
+        const hFR = frTeam(m.homeTeam);
+        const aFR = frTeam(m.awayTeam);
+        if (!hFR || !aFR) {
+          if (pass === 0) {
+            if (!hFR) mappingWarnings.push((m.homeTeam?.tla || "?") + " (" + (m.homeTeam?.name || "?") + ")");
+            if (!aFR) mappingWarnings.push((m.awayTeam?.tla || "?") + " (" + (m.awayTeam?.name || "?") + ")");
           }
-          if (isLive) liveIds.add(ko.id);
-          break;
+          return;
         }
-      }
-    });
+
+        const sh = m.score?.fullTime?.home;
+        const sa = m.score?.fullTime?.away;
+        if (sh == null || sa == null) return;
+
+        for (const ko of KO) {
+          if (R[ko.id]) continue;
+          const res = teamOf[ko.id];
+          if (res && res.a === hFR && res.b === aFR) {
+            R[ko.id] = { id: ko.id, h: sh, a: sa };
+            // Victoire aux t.a.b. (égalité en temps réglementaire)
+            if (isDone && sh === sa && m.score?.winner) {
+              R[ko.id].w = (m.score.winner === "HOME_TEAM") ? "h" : "a";
+            }
+            if (isLive) liveIds.add(ko.id);
+            added = true;
+            break;
+          }
+        }
+      });
+      if (!added) break;
+    }
 
 LIVE_ADJ = buildLiveRatings();   // Phase 2 : niveaux réajustés depuis les résultats réels
     dataStale=false; staleMsg="";
