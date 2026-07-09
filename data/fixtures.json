@@ -6,7 +6,7 @@
     "count": 104,
     "first": "2026-06-11",
     "last": "2026-07-19",
-    "played": 96
+    "played": 97
   },
   "competition": {
     "id": 2000,
@@ -6425,11 +6425,11 @@
       },
       "id": 537383,
       "utcDate": "2026-07-09T20:00:00Z",
-      "status": "PAUSED",
+      "status": "FINISHED",
       "matchday": null,
       "stage": "QUARTER_FINALS",
       "group": null,
-      "lastUpdated": "2026-07-09T20:56:10Z",
+      "lastUpdated": "2026-07-09T22:05:53Z",
       "homeTeam": {
         "id": 773,
         "name": "France",
@@ -6445,10 +6445,10 @@
         "crest": "https://crests.football-data.org/morocco.svg"
       },
       "score": {
-        "winner": "DRAW",
+        "winner": "HOME_TEAM",
         "duration": "REGULAR",
         "fullTime": {
-          "home": 0,
+          "home": 2,
           "away": 0
         },
         "halfTime": {
