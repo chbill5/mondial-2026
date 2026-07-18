@@ -6841,7 +6841,7 @@
       "matchday": null,
       "stage": "THIRD_PLACE",
       "group": null,
-      "lastUpdated": "2026-07-18T21:26:36Z",
+      "lastUpdated": "2026-07-18T22:21:48Z",
       "homeTeam": {
         "id": 773,
         "name": "France",
@@ -6860,12 +6860,12 @@
         "winner": "AWAY_TEAM",
         "duration": "REGULAR",
         "fullTime": {
-          "home": 0,
-          "away": 2
+          "home": 1,
+          "away": 4
         },
         "halfTime": {
-          "home": null,
-          "away": null
+          "home": 0,
+          "away": 4
         }
       },
       "odds": {
